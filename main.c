@@ -34,39 +34,12 @@ int main(void) {
 	components->IntcInstancePtr=&Intc;
 	components->IntcConfig = IntcConfig;
 
-	Status = initInterrupt(components);
+	//Status = initInterrupt(components);
 
 	u8 dataArray[4] = {0xFE, 0xFE, 0xFE, 0xFE};
 
-	//Status = LoadTx((u8 *)TX_BUFFER_BASE, (u8 *) *dataArray, 4);
-
-	Status = ReadRx(dataArray, 4);
-	xil_printf("dataArray buffer\r\n");
-	if(Status != XST_SUCCESS) return XST_FAILURE;
-
-	Status = ReadRx((u8 *)RX_BUFFER_BASE, 4);
-	xil_printf("dataArray buffer pre DMA\r\n");
-	if(Status != XST_SUCCESS) return XST_FAILURE;
-
-//	Status = XAxiDma_Send_Array(components->AxiDma, (UINTPTR) TX_BUFFER_BASE, (UINTPTR) RX_BUFFER_BASE, 3);
-//	if(Status != XST_SUCCESS) return XST_FAILURE;
-
-	//Load values to DMA base address so he doesn't send gibberish
-//	Status = LoadTx((u8 *)XPAR_AXIDMA_0_BASEADDR, (u8 *) TX_BUFFER_BASE, 4);
-
-	//Status = dmaSend();
-
-	Status = XAxiDma_SimpleTransfer(components->AxiDma, (UINTPTR) RX_BUFFER_BASE, 4, XAXIDMA_DMA_TO_DEVICE);
-	if(Status != XST_SUCCESS) return XST_FAILURE;
-
-	Status = ReadRx((u8 *)RX_BUFFER_BASE, 4);
-	xil_printf("dataArray buffer after DMA transfer\r\n");
-	if(Status != XST_SUCCESS) return XST_FAILURE;
-
-	xil_printf("Successfully ran first part of AXI DMA interrupt Example\r\n");
-
 	//Disable interrupts and return success
-	DisableIntrSystem(components->IntcInstancePtr);
+	//DisableIntrSystem(components->IntcInstancePtr);
 
 	xil_printf("--- Exiting main() --- \r\n");
 
