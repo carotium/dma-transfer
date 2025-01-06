@@ -1,13 +1,11 @@
 #include "libs.h"
 
+//Test numero due
 static XAxiDma AxiDma;				//Instance of XAxiDma driver
 static INTC Intc;					//Interrupt controller instance
 static XAxiDma_Config *CfgPtr;		//XAxiDma config pointer
 static XScuGic_Config *IntcConfig;	//XScuGic config pointer
 static controllers *components;
-
-//Our type, we assign it in the main function
-//static controllers *components;
 
 int main(void) {
 	int Status;
@@ -23,24 +21,13 @@ int main(void) {
 	Status = XUartPs_CfgInitialize(&UartPs, Cfg, Cfg->BaseAddress);
 	if (Status != XST_SUCCESS) return XST_FAILURE;
 
-	/*Status = XUartPs_SetBaudRate(&UartPs, 115200);
-	if (Status != XST_SUCCESS) return XST_FAILURE;*/
-
 	XUartPs_SetOperMode(&UartPs , XUARTPS_OPER_MODE_NORMAL);
-
-	//XUartPs_();
 
 	printf("Hey im printf!\n");
 
 	for(int i = 0; i < (sizeof(text)-1);) {
 		i += XUartPs_Send(&UartPs, &text[i], 1);
 	}
-	//printf("\nnova vrstica\r\nnova vrstica IN return");
-
-
-	//XUartPs_SetOperMode(&UartPs , XUARTPS_OPER_MODE_AUTO_ECHO);
-
-
 
 	components->CfgPtr=CfgPtr;
 	components->AxiDma=&AxiDma;
@@ -48,10 +35,6 @@ int main(void) {
 	components->IntcConfig = IntcConfig;
 
 	Status = initInterrupt(components);
-
-	//char sken[10];
-
-
 
 	u8 dataArray[4] = {0xFE, 0xFE, 0xFE, 0xFE};
 
