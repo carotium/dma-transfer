@@ -60,6 +60,8 @@ int main(void) {
 	u8 srcAddr = dataArray;
 	u8 length = 4;
 
+	dmaWrite(srcAddr, length);
+
 	xil_printf("--- Exiting main() --- \r\n");
 
 	return XST_SUCCESS;
