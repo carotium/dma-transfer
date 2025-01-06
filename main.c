@@ -6,6 +6,23 @@ static XAxiDma_Config *CfgPtr;		//XAxiDma config pointer
 static XScuGic_Config *IntcConfig;	//XScuGic config pointer
 static controllers *components;
 
+void dmaWrite(u8 srcAddr, u8 length) {
+	// Reset the DMA
+	XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_CR_OFFSET, XAXIDMA_CR_RESET_MASK);
+	
+	// Wait for the reset to complete
+    while (XAxiDma_ReadReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_CR_OFFSET) & XAXIDMA_CR_RESET_MASK);
+
+    // Set the source address
+    XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_SRCADDR_OFFSET, src_addr);
+
+    // Set the transfer length
+    XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_BUFFLEN_OFFSET, length);
+
+    // Start the DMA transfer
+    XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_CR_OFFSET, XAXIDMA_CR_RUNSTOP_MASK);
+}
+
 int main(void) {
 	int Status;
 
@@ -39,6 +56,9 @@ int main(void) {
 
 	//Disable interrupts and return success
 	//DisableIntrSystem(components->IntcInstancePtr);
+
+	u8 srcAddr = dataArray;
+	u8 length = 4;
 
 	xil_printf("--- Exiting main() --- \r\n");
 
