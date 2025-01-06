@@ -71,7 +71,7 @@ int main(void) {
 	//Load values to DMA base address so he doesn't send gibberish
 //	Status = LoadTx((u8 *)XPAR_AXIDMA_0_BASEADDR, (u8 *) TX_BUFFER_BASE, 4);
 
-	Status = dmaSend();
+	//Status = dmaSend();
 
 	Status = XAxiDma_SimpleTransfer(components->AxiDma, (UINTPTR) RX_BUFFER_BASE, 4, XAXIDMA_DMA_TO_DEVICE);
 	if(Status != XST_SUCCESS) return XST_FAILURE;
