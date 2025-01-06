@@ -2,6 +2,7 @@
 #define LIBS_H
 
 #include "xaxidma.h"
+#include "xaxidma_hw.h"
 #include "xparameters.h"
 #include "xil_exception.h"
 #include "xdebug.h"

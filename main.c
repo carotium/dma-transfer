@@ -1,6 +1,5 @@
 #include "libs.h"
 
-//Test numero due
 static XAxiDma AxiDma;				//Instance of XAxiDma driver
 static INTC Intc;					//Interrupt controller instance
 static XAxiDma_Config *CfgPtr;		//XAxiDma config pointer
