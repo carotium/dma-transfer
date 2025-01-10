@@ -5,6 +5,7 @@
 #include "xaxidma_hw.h"
 #include "xparameters.h"
 #include "xil_exception.h"
+#include "xil_cache.h"
 #include "xdebug.h"
 #include "xscugic.h"
 #include "xuartps.h"
@@ -16,13 +17,18 @@
  * Macros
  ***************************************/
 //Directly after DMA MM2S and S2MM interrupt IDs (61U, 62U)
-#define XPAR_FABRIC_HSYNC_INTROUT_VEC_ID 63U
-#define XPAR_FABRIC_VSYNC_INTROUT_VEC_ID 64U
+
+//only MM2S is enabled at XPAR_FABRIC_AXIDMA_0_VEC_ID 61U
+#define XPAR_FABRIC_HSYNC_INTROUT_VEC_ID 62U
+#define XPAR_FABRIC_VSYNC_INTROUT_VEC_ID 63U
+
 //Used interrupt IDs
-#define RX_INTR_ID			XPAR_FABRIC_AXIDMA_0_S2MM_INTROUT_VEC_ID
-#define TX_INTR_ID			XPAR_FABRIC_AXIDMA_0_MM2S_INTROUT_VEC_ID
+
+//#define RX_INTR_ID			XPAR_FABRIC_AXIDMA_0_S2MM_INTROUT_VEC_ID
+#define TX_INTR_ID			XPAR_FABRIC_AXIDMA_0_VEC_ID
 #define HSYNC_INTR_ID		XPAR_FABRIC_HSYNC_INTROUT_VEC_ID
 #define VSYNC_INTR_ID		XPAR_FABRIC_VSYNC_INTROUT_VEC_ID
+
 //DMA device ID
 #define DMA_DEV_ID			XPAR_AXIDMA_0_DEVICE_ID
 //DDR Base Address, in xparameters.h
@@ -54,14 +60,20 @@ typedef struct controllers_t {
 	XAxiDma *AxiDma;			//Pointer to Axi Dma
 	INTC *IntcInstancePtr;		//Pointer to interrupt controller
 	XScuGic_Config *IntcConfig;	//Pointer to the config of the interrupt controller
+	XUartPs_Config *Cfg;		//Pointer to the config of UartPs
+	XUartPs *UartPs;			//Pointer to UartPs instance
 } controllers;
 
-#endif		//End of protection
-
+/***************************************
+ * Variable definitions
+ ***************************************/
+extern controllers *components;
 /***************************************
  * Function prototypes
  ***************************************/
-int initInterrupt(controllers *components);			//Initialization routine
+int initInterrupt(controllers *components);			//Initialization routine with interrupts
+int initDMA(controllers *components);			//Initialization for the DMA
+int initUart(controllers *components);			//Initialization for the UartPs
 void VSyncIntrHandler(void *Callback);		//ISR for VSYNC
 void HSyncIntrHandler(void *Callback);		//ISR for HSYNC
 int ReadRx(u8 *Addr, u8 Length);					//Function that reads values from Addr of specified Length
@@ -70,3 +82,6 @@ int XAxiDma_Send_Array(XAxiDma *myDma, UINTPTR TxBA, UINTPTR RxBA, u32 tranLen);
 void DisableIntrSystem(INTC *IntcInstancePtr);
 u8 getChar(XUartPs *UartPs);
 int dmaSend(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length, int Direction);
+int dmaRead(u32 srcAddr, u32 length, controllers *components);
+
+#endif		//End of protection
