@@ -56,9 +56,9 @@ extern void xil_printf(const char *format, ...);
  * Type definitions
  ***************************************/
 typedef struct controllers_t {
+	XAxiDma *AxiDma;			//Pointer to Axi Dma instance
 	XAxiDma_Config *CfgPtr;		//Pointer to the config of Axi Dma
-	XAxiDma *AxiDma;			//Pointer to Axi Dma
-	INTC *IntcInstancePtr;		//Pointer to interrupt controller
+	INTC *IntcInstancePtr;		//Pointer to interrupt controller instance
 	XScuGic_Config *IntcConfig;	//Pointer to the config of the interrupt controller
 	XUartPs *UartPs;			//Pointer to UartPs instance
 	XUartPs_Config *Cfg;		//Pointer to the config of UartPs
