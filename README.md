@@ -1,4 +1,4 @@
-# dma-transfer
+# Dma-Transfer
 A library for initiating dma transfers.
 
-This project contains commands which access internal registers to set parameters for the transfer and start it.
+This project initializes UART, DMA and interrupts for PS on MiniZed board.
