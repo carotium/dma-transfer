@@ -71,11 +71,13 @@ extern controllers *components;
 /***************************************
  * Function prototypes
  ***************************************/
+int init_platform(controllers *components);			//Initialization routine
 int initInterrupt(controllers *components);			//Initialization routine with interrupts
-int initDMA(controllers *components);			//Initialization for the DMA
-int initUart(controllers *components);			//Initialization for the UartPs
-void VSyncIntrHandler(void *Callback);		//ISR for VSYNC
-void HSyncIntrHandler(void *Callback);		//ISR for HSYNC
+int initDMA(controllers *components);				//Initialization routine for the DMA
+int initUart(controllers *components);				//Initialization routine for the UartPs
+
+void VSyncIntrHandler(void *Callback);				//ISR for VSYNC
+void HSyncIntrHandler(void *Callback);				//ISR for HSYNC
 int ReadRx(u8 *Addr, u8 Length);					//Function that reads values from Addr of specified Length
 int LoadTx(u8 *Addr, u8 *ValueAddr, u8 Length);		//Function that writes Value to Addr of specified Length
 int XAxiDma_Send_Array(XAxiDma *myDma, UINTPTR TxBA, UINTPTR RxBA, u32 tranLen);
@@ -84,4 +86,4 @@ u8 getChar(XUartPs *UartPs);
 int dmaSend(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length, int Direction);
 int dmaRead(u32 srcAddr, u32 length, controllers *components);
 
-#endif		//End of protection
+#endif		//End of protection macro

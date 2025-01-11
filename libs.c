@@ -3,9 +3,9 @@
 controllers *components;
 
 /***************************************
- * initInterrupt initializes DMA, their respective S2MM and MM2S and also VSync, HSync interrupts.
+ * initInterrupt initializes MM2S and HSync interrupts. (for now)
  *
- * @param	components is a pointer to the controllers struct which holds necessary information for initialization.
+ * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
  *
  * @return
  * 		- XST_SUCCESS if successful,
@@ -14,14 +14,16 @@ controllers *components;
  * @note	None.
  ***************************************/
 int initInterrupt(controllers *components) {
+
 	int Status;
 
 	xil_printf("\r\nInitializing interrupts...\r\n");
 
-	//Setup interrupt system
-	components->IntcConfig = XScuGic_LookupConfig(INTC_DEVICE_ID);
+	//Get the interrupt controller configuration
+	components->IntcConfig = XScuGic_LookupConfig(INTC_DEVICE_ID);		
 	if(NULL == components->CfgPtr) return XST_FAILURE;
-	Status = XScuGic_CfgInitialize(components->IntcInstancePtr, components->IntcConfig, (components->IntcConfig)->CpuBaseAddress);
+	//Initialize the interrupt controller
+	Status = XScuGic_CfgInitialize(components->IntcInstancePtr, components->IntcConfig, (components->IntcConfig)->CpuBaseAddress);		
 	if(Status != XST_SUCCESS) return XST_FAILURE;
 	//Enable interrupts from the hardware
 	Xil_ExceptionInit();
@@ -52,7 +54,7 @@ int initInterrupt(controllers *components) {
 /***************************************
  * initUart initializes Uart.
  *
- * @param	components is a pointer to the controllers struct which holds necessary information for initialization.
+ * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
  *
  * @return
  * 		- XST_SUCCESS if successful,
@@ -64,16 +66,16 @@ int initUart(controllers *components) {
 	int Status;
 
 	xil_printf("\r\nInitializing Uart...\r\n");
-
-	components->Cfg = XUartPs_LookupConfig(UART_DEVICE_ID);
+	//Get the UART configuration
+	components->Cfg = XUartPs_LookupConfig(UART_DEVICE_ID);		
 	if (components->Cfg == NULL) return XST_FAILURE;
-
-	Status = XUartPs_CfgInitialize(components->UartPs, components->Cfg, components->Cfg->BaseAddress);
+	//Initialize the UART
+	Status = XUartPs_CfgInitialize(components->UartPs, components->Cfg, components->Cfg->BaseAddress);		
 	if (Status != XST_SUCCESS) return XST_FAILURE;
-
-	XUartPs_SetBaudRate(components->UartPs, 115200);
-
-	XUartPs_SetOperMode(components->UartPs , XUARTPS_OPER_MODE_NORMAL);
+	//Set the baud rate
+	XUartPs_SetBaudRate(components->UartPs, 115200);		
+	//Set the UART in normal mode
+	XUartPs_SetOperMode(components->UartPs , XUARTPS_OPER_MODE_NORMAL); 	
 
 	return Status;
 }
@@ -92,13 +94,13 @@ int initDMA(controllers *components) {
 	int Status;
 
 	xil_printf("\r\nInitializing DMA...\r\n");
-
+	//Get the DMA configuration
 	components->CfgPtr = XAxiDma_LookupConfig(DMA_DEV_ID);
 	if(!(components->CfgPtr)) {
 		xil_printf("No config found for %d\r\n", DMA_DEV_ID);
 		return XST_FAILURE;
 	}
-
+	//Initialize the DMA
 	Status = XAxiDma_CfgInitialize(components->AxiDma, components->CfgPtr);
 	if(Status != XST_SUCCESS) {xil_printf("Initialization failed"); return XST_FAILURE;}
 	if(XAxiDma_HasSg(components->AxiDma)) {xil_printf("Device configured as SG mode \r\n"); return XST_FAILURE;}

@@ -22,6 +22,7 @@ int main(void) {
 	components->UartPs = &UartPs;
 	components->Cfg = &Cfg;
 	*/
+	//Initialize the UART, DMA and Interrupts
 	if(initUart(components) != XST_SUCCESS) {
 		xil_printf("Initialization of UartPs failed :(\n\r");
 		return XST_FAILURE;
