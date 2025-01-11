@@ -3,6 +3,62 @@
 controllers *components;
 
 /***************************************
+ * initUart initializes the Uart.
+ *
+ * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
+ *
+ * @return
+ * 		- XST_SUCCESS if successful,
+ * 		- XST_FAILURE otherwise.
+ *
+ * @note	None.
+ ***************************************/
+int initUart(controllers *components) {
+	int Status;
+
+	xil_printf("\r\nInitializing Uart...\r\n");
+	//Get the UART configuration
+	components->Cfg = XUartPs_LookupConfig(UART_DEVICE_ID);		
+	if (components->Cfg == NULL) return XST_FAILURE;
+	//Initialize the UART
+	Status = XUartPs_CfgInitialize(components->UartPs, components->Cfg, components->Cfg->BaseAddress);		
+	if (Status != XST_SUCCESS) return XST_FAILURE;
+	//Set the baud rate
+	XUartPs_SetBaudRate(components->UartPs, 115200);		
+	//Set the UART in normal mode
+	XUartPs_SetOperMode(components->UartPs , XUARTPS_OPER_MODE_NORMAL); 	
+
+	return Status;
+}
+/***************************************
+ * initDMA initializes the DMA.
+ *
+ * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
+ *
+ * @return
+ * 		- XST_SUCCESS if successful,
+ * 		- XST_FAILURE otherwise.
+ *
+ * @note	None.
+ ***************************************/
+int initDMA(controllers *components) {
+	int Status;
+
+	xil_printf("\r\nInitializing DMA...\r\n");
+	//Get the DMA configuration
+	components->CfgPtr = XAxiDma_LookupConfig(DMA_DEV_ID);
+	if(!(components->CfgPtr)) {
+		xil_printf("No config found for %d\r\n", DMA_DEV_ID);
+		return XST_FAILURE;
+	}
+	//Initialize the DMA
+	Status = XAxiDma_CfgInitialize(components->AxiDma, components->CfgPtr);
+	if(Status != XST_SUCCESS) {xil_printf("Initialization failed"); return XST_FAILURE;}
+	if(XAxiDma_HasSg(components->AxiDma)) {xil_printf("Device configured as SG mode \r\n"); return XST_FAILURE;}
+
+	return Status;
+}
+/***************************************
  * initInterrupt initializes MM2S and HSync interrupts. (for now)
  *
  * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
@@ -52,7 +108,7 @@ int initInterrupt(controllers *components) {
 	return Status;
 }
 /***************************************
- * initUart initializes Uart.
+ * dmaRead reads data from DDR to AXIS.
  *
  * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
  *
@@ -62,60 +118,14 @@ int initInterrupt(controllers *components) {
  *
  * @note	None.
  ***************************************/
-int initUart(controllers *components) {
-	int Status;
-
-	xil_printf("\r\nInitializing Uart...\r\n");
-	//Get the UART configuration
-	components->Cfg = XUartPs_LookupConfig(UART_DEVICE_ID);		
-	if (components->Cfg == NULL) return XST_FAILURE;
-	//Initialize the UART
-	Status = XUartPs_CfgInitialize(components->UartPs, components->Cfg, components->Cfg->BaseAddress);		
-	if (Status != XST_SUCCESS) return XST_FAILURE;
-	//Set the baud rate
-	XUartPs_SetBaudRate(components->UartPs, 115200);		
-	//Set the UART in normal mode
-	XUartPs_SetOperMode(components->UartPs , XUARTPS_OPER_MODE_NORMAL); 	
-
-	return Status;
-}
-/***************************************
- * initDMA initializes DMA and enables its MM2S channel.
- *
- * @param	components is a pointer to the controllers struct which holds necessary information for initialization.
- *
- * @return
- * 		- XST_SUCCESS if successful,
- * 		- XST_FAILURE otherwise.
- *
- * @note	None.
- ***************************************/
-int initDMA(controllers *components) {
-	int Status;
-
-	xil_printf("\r\nInitializing DMA...\r\n");
-	//Get the DMA configuration
-	components->CfgPtr = XAxiDma_LookupConfig(DMA_DEV_ID);
-	if(!(components->CfgPtr)) {
-		xil_printf("No config found for %d\r\n", DMA_DEV_ID);
-		return XST_FAILURE;
-	}
-	//Initialize the DMA
-	Status = XAxiDma_CfgInitialize(components->AxiDma, components->CfgPtr);
-	if(Status != XST_SUCCESS) {xil_printf("Initialization failed"); return XST_FAILURE;}
-	if(XAxiDma_HasSg(components->AxiDma)) {xil_printf("Device configured as SG mode \r\n"); return XST_FAILURE;}
-
-	return Status;
-}
-
 int dmaRead(u32 srcAddr, u32 length, controllers *components) {
 
 	u32 Status;
-	u32 data_dma_to_device[8];	//dma-read from ddr to AXI
+	u32 data_dma_to_device[8];	//dma-read from ddr to AXIS
 	u32 data_dma_to_vga[300];	//dma-read of half a line of 3byte data 400*3byte=1200=4byte*300 -> u32 * 300 = u24 * 400
 	u32 data_device_to_dma[8];
-				    //rRgGbBxx
-	u32 data_send = 0x0F0F0F00;
+				     //rRgGbBxx
+	u32 data_send =  0x0F0F0F00;
 	u32 data_send2 = 0x09090900;
 
 	Xil_DCacheDisable();
@@ -123,8 +133,9 @@ int dmaRead(u32 srcAddr, u32 length, controllers *components) {
 	for(u32 i = 0; i<1200; i+=4) {
 		data_dma_to_vga[i] = i;
 	}
+
+//	Status = XAxiDma_SimpleTransfer(components->AxiDma,(UINTPTR) data_dma_to_vga, length*4, XAXIDMA_DMA_TO_DEVICE);
 	Status = XAxiDma_SimpleTransfer(components->AxiDma, (UINTPTR) data_send, 2, XAXIDMA_DMA_TO_DEVICE);
-//	status = XAxiDma_SimpleTransfer(components->AxiDma,(UINTPTR) data_dma_to_vga, length*4, XAXIDMA_DMA_TO_DEVICE);
 	if(Status != XST_SUCCESS) return XST_FAILURE;
 	usleep(1);
 	if(XAxiDma_Busy(components->AxiDma, XAXIDMA_DMA_TO_DEVICE)) {
@@ -173,40 +184,6 @@ void VSyncIntrHandler(void *Callback) {
 	XScuGic_Disable(IntcInstancePtr, VSYNC_INTR_ID);
 	//Do some data transfer
 	XScuGic_Enable(IntcInstancePtr, VSYNC_INTR_ID);
-}
-
-
-int LoadTx(u8 *Addr, u8 *ValueAddr, u8 Length) {
-	for(int i = 0; i < Length; i++) {
-		Addr[i] = ValueAddr[i];
-		xil_printf("%02X", ValueAddr[i]);
-	}
-	xil_printf("loaded\r\n");
-	return XST_SUCCESS;
-}
-
-int ReadRx(u8 *Addr, u8 Length) {
-	for(int i = 0; i < Length; i++) {
-		xil_printf("%02X", *(Addr + i));
-	}
-	xil_printf("read");
-	return XST_SUCCESS;
-}
-
-int XAxiDma_Send_Array(XAxiDma *axiDma, UINTPTR TxBA, UINTPTR RxBA, u32 tranLen) {
-	int Status;
-
-	Xil_DCacheFlushRange((UINTPTR)TxBA, tranLen);
-	Xil_DCacheFlushRange((UINTPTR)RxBA, tranLen);
-	//Status = XAxiDma_SimpleTransfer(axiDma, RxBA, tranLen, XAXIDMA_DEVICE_TO_DMA);
-	//if (Status != XST_SUCCESS) return XST_FAILURE;
-	Status = XAxiDma_SimpleTransfer(axiDma, TxBA, tranLen, XAXIDMA_DMA_TO_DEVICE);
-	if (Status != XST_SUCCESS) return XST_FAILURE;
-
-	while (XAxiDma_Busy(axiDma,XAXIDMA_DMA_TO_DEVICE)) {/* Wait */}
-
-	printf("sent data over DMA\r");
-	return XST_SUCCESS;
 }
 /***************************************
  * DisableIntrSystem disables connected interrupts.

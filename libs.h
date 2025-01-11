@@ -78,9 +78,6 @@ int initUart(controllers *components);				//Initialization routine for the UartP
 
 void VSyncIntrHandler(void *Callback);				//ISR for VSYNC
 void HSyncIntrHandler(void *Callback);				//ISR for HSYNC
-int ReadRx(u8 *Addr, u8 Length);					//Function that reads values from Addr of specified Length
-int LoadTx(u8 *Addr, u8 *ValueAddr, u8 Length);		//Function that writes Value to Addr of specified Length
-int XAxiDma_Send_Array(XAxiDma *myDma, UINTPTR TxBA, UINTPTR RxBA, u32 tranLen);
 void DisableIntrSystem(INTC *IntcInstancePtr);
 u8 getChar(XUartPs *UartPs);
 int dmaSend(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length, int Direction);
