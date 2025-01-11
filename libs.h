@@ -60,8 +60,8 @@ typedef struct controllers_t {
 	XAxiDma *AxiDma;			//Pointer to Axi Dma
 	INTC *IntcInstancePtr;		//Pointer to interrupt controller
 	XScuGic_Config *IntcConfig;	//Pointer to the config of the interrupt controller
-	XUartPs_Config *Cfg;		//Pointer to the config of UartPs
 	XUartPs *UartPs;			//Pointer to UartPs instance
+	XUartPs_Config *Cfg;		//Pointer to the config of UartPs
 } controllers;
 
 /***************************************
