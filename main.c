@@ -1,32 +1,27 @@
 #include "libs.h"
 
 static XAxiDma AxiDma;				//Instance of XAxiDma driver
-static INTC Intc;					//Interrupt controller instance
 static XAxiDma_Config *CfgPtr;		//XAxiDma config pointer
+static INTC Intc;					//Interrupt controller instance
 static XScuGic_Config *IntcConfig;	//XScuGic config pointer
 static XUartPs UartPs;				//Instance of UartPs driver
 static XUartPs_Config Cfg;			//XUartPs config pointer
-//static controllers *components;		//Struct that holds driver information
+//static controllers *components;		//Struct that holds driver information -> defined as extern in libs.h
 
 
 int main(void) {
 	int Status;
+	//Assembling the controllers struct for easier access to the underlying drivers
 
-	u8 text[] = "Hello world! (on my own)";
-
-	printf("Hey im printf!\n");
-
-//	for(int i = 0; i < (sizeof(text)-1);) {
-//		i += XUartPs_Send(components->UartPs, &text[i], 1);
-//	}
-
-	components->CfgPtr=CfgPtr;
+	controllers *components = {&AxiDma, CfgPtr, &Intc, IntcConfig, &UartPs, &Cfg};
+	/*
 	components->AxiDma=&AxiDma;
+	components->CfgPtr=CfgPtr;
 	components->IntcInstancePtr=&Intc;
 	components->IntcConfig = IntcConfig;
-	components->Cfg = &Cfg;
 	components->UartPs = &UartPs;
-
+	components->Cfg = &Cfg;
+	*/
 	if(initUart(components) != XST_SUCCESS) {
 		xil_printf("Initialization of UartPs failed :(\n\r");
 		return XST_FAILURE;
