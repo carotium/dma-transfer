@@ -17,16 +17,15 @@
 /***************************************
  * Macros
  ***************************************/
-//Directly after DMA MM2S and S2MM interrupt IDs (61U, 62U)
+//Directly after DMA MM2S interrupt IDs 61U
 
 //only MM2S is enabled at XPAR_FABRIC_AXIDMA_0_VEC_ID 61U
 #define XPAR_FABRIC_HSYNC_INTROUT_VEC_ID 62U
 #define XPAR_FABRIC_FIFO_EMPTY_INTROUT_VEC_ID 63U
 #define XPAR_FABRIC_FIFO_FULL_INTROUT_VEC_ID 64U
-#define XPAR_FABRIC_VSYNC_INTROUT_VEC_ID 65U		//not enabled
+#define XPAR_FABRIC_VSYNC_INTROUT_VEC_ID 65U		//not enabled, supposed to be 62U
 
 //Used interrupt IDs
-
 //#define RX_INTR_ID			XPAR_FABRIC_AXIDMA_0_S2MM_INTROUT_VEC_ID
 #define TX_INTR_ID			XPAR_FABRIC_AXIDMA_0_VEC_ID
 #define HSYNC_INTR_ID		XPAR_FABRIC_HSYNC_INTROUT_VEC_ID
