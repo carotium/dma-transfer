@@ -180,7 +180,6 @@ int dmaReadRun(controllers *components) {
 	return XST_SUCCESS;
 }
 int dmaReadReg(u32 *srcAddr, u32 length, controllers *components) {
-
 	//Setting DMA MM2S run/stop bit to 1
 	Xil_Out32((components->CfgPtr->BaseAddr + XAXIDMA_CR_OFFSET), XAXIDMA_CR_RUNSTOP_MASK);
 	//Write a valid source address to the MM2S_SA register
@@ -217,8 +216,6 @@ void TxIntrHandler(void *Callback) {
  * @note	None.
  ***************************************/
 void HSyncIntrHandler(void *Callback) {
-
-//	INTC *IntcInstancePtr = (INTC *) Callback;
 	//Disable the interrupt
 	XScuGic_Disable(components->IntcInstancePtr, HSYNC_INTR_ID);
 	//Do some data transfer
@@ -245,6 +242,7 @@ void VSyncIntrHandler(void *Callback) {
 	i=-29;
 	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
 }
+
 
 
 void FifoEmptyHandler(void *Callback) {

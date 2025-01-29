@@ -47,6 +47,7 @@ int main(void) {
 	xil_printf("Press a key to exit");
 	getChar(components->UartPs);
 	xil_printf("\n\rHappy DMA-ing\n\r");
+	
 	//Enable the interrupts
 	enableInterrupts(components);
 	while(1)
@@ -70,6 +71,5 @@ int main(void) {
 	// Setting the transfer length starts the transaction
 	XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_BUFFLEN_OFFSET, length);
 */
-
 	return XST_SUCCESS;
 }
