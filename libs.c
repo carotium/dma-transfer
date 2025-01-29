@@ -1,11 +1,14 @@
 #include "libs.h"
 
-controllers *components;
+controllers *components;	//Struct that holds driver information -> defined as extern in libs.h
+u32 data_dma_to_vga[512];
+u32 dataArray[256][256];
+static volatile s32 i = 0;	//line number to send
 
 /***************************************
- * initUart initializes the Uart.
+ * initPlatform initializes the platform. It initializes UART, DMA and interrupts.
  *
- * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
+ * @param	components is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
  *
  * @return
  * 		- XST_SUCCESS if successful,
@@ -13,7 +16,41 @@ controllers *components;
  *
  * @note	None.
  ***************************************/
-int initUart(controllers *components) {
+int initPlatform(controllers *components) {
+	int Status;
+
+	Status = initUART(components);
+	if(Status != XST_SUCCESS) {
+		xil_printf("Initialization of UartPs failed :(\n\r");
+		return XST_FAILURE;
+	} else xil_printf("Initialization of UartPs done!\n\r");
+
+	Status = initDMA(components);
+	if(Status != XST_SUCCESS) {
+		xil_printf("Initialization of DMA failed :(\n\r");
+		return XST_FAILURE;
+	} 	else xil_printf("Initialization of DMA done!\n\r");
+
+	Status = initInterrupt(components);
+	if(Status != XST_SUCCESS) {
+		xil_printf("Initialization of interrupts failed.\n\r");
+		return XST_FAILURE;
+	} else xil_printf("Initialization of interrupts done!\r\n");
+
+	return Status;
+}
+/***************************************
+ * initUart initializes the UART.
+ *
+ * @param	components is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+ *
+ * @return
+ * 		- XST_SUCCESS if successful,
+ * 		- XST_FAILURE otherwise.
+ *
+ * @note	None.
+ ***************************************/
+int initUART(controllers *components) {
 	int Status;
 
 	xil_printf("\r\nInitializing Uart...\r\n");
@@ -33,7 +70,7 @@ int initUart(controllers *components) {
 /***************************************
  * initDMA initializes the DMA.
  *
- * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
+ * @param	components is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
  *
  * @return
  * 		- XST_SUCCESS if successful,
@@ -61,7 +98,7 @@ int initDMA(controllers *components) {
 /***************************************
  * initInterrupt initializes MM2S and HSync interrupts. (for now)
  *
- * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
+ * @param	components is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
  *
  * @return
  * 		- XST_SUCCESS if successful,
@@ -70,7 +107,6 @@ int initDMA(controllers *components) {
  * @note	None.
  ***************************************/
 int initInterrupt(controllers *components) {
-
 	int Status;
 
 	xil_printf("\r\nInitializing interrupts...\r\n");
@@ -81,76 +117,95 @@ int initInterrupt(controllers *components) {
 	//Initialize the interrupt controller
 	Status = XScuGic_CfgInitialize(components->IntcInstancePtr, components->IntcConfig, (components->IntcConfig)->CpuBaseAddress);		
 	if(Status != XST_SUCCESS) return XST_FAILURE;
-	//Enable interrupts from the hardware
-	Xil_ExceptionInit();
-	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,(Xil_ExceptionHandler)INTC_HANDLER,(void *)components->IntcInstancePtr);
-	Xil_ExceptionEnable();
 
+	//Perform a self-test.
+	Status = XScuGic_SelfTest(components->IntcInstancePtr);
 	if(Status != XST_SUCCESS) {xil_printf("Failed interrupt setup\r\n"); return XST_FAILURE;}
 
-	//Disable all interrupts before setup
-	XAxiDma_IntrDisable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
-//	XAxiDma_IntrDisable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
-	//Enable all interrupts
-	XAxiDma_IntrEnable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
-//	XAxiDma_IntrEnable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
+	//Set priority for connected interrupts (0 is highest, 0xF8 is highest, with 0x8 increments
+	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, TX_INTR_ID, 0x90, 0x3);
+	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, VSYNC_INTR_ID, 0x98, 0x3);
+	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, HSYNC_INTR_ID, 0xA0, 0x3);
+	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, FIFO_EMPTY_INTR_ID, 0x98, 0x3);
+	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, FIFO_FULL_INTR_ID, 0x90, 0x3);
 
-//	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, VSYNC_INTR_ID, 0x9F, 0x3);
-	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, HSYNC_INTR_ID, 0x20, 0x3);
-
-//	Status = XScuGic_Connect(components->IntcInstancePtr, VSYNC_INTR_ID, (Xil_InterruptHandler) VSyncIntrHandler, components->IntcInstancePtr);
+	//Connect interrupts to their corresponding handlers
+	Status = XScuGic_Connect(components->IntcInstancePtr, TX_INTR_ID, (Xil_InterruptHandler) TxIntrHandler, components->IntcInstancePtr);
+	if(Status != XST_SUCCESS) return XST_FAILURE;
 	Status = XScuGic_Connect(components->IntcInstancePtr, HSYNC_INTR_ID, (Xil_InterruptHandler) HSyncIntrHandler, components->IntcInstancePtr);
 	if(Status != XST_SUCCESS) return XST_FAILURE;
-	//We enable the interrupts
-	XScuGic_Enable(components->IntcInstancePtr, HSYNC_INTR_ID);
-//	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
+	Status = XScuGic_Connect(components->IntcInstancePtr, VSYNC_INTR_ID, (Xil_InterruptHandler) VSyncIntrHandler, components->IntcInstancePtr);
+	if(Status != XST_SUCCESS) return XST_FAILURE;
+	Status = XScuGic_Connect(components->IntcInstancePtr, FIFO_EMPTY_INTR_ID, (Xil_InterruptHandler) FifoEmptyHandler, components->IntcInstancePtr);
+	if(Status != XST_SUCCESS) return XST_FAILURE;
+	Status = XScuGic_Connect(components->IntcInstancePtr, FIFO_FULL_INTR_ID, (Xil_InterruptHandler) FifoFullHandler, components->IntcInstancePtr);
+	if(Status != XST_SUCCESS) return XST_FAILURE;
 
+	//Disable all DMA interrupts before setup
+	XAxiDma_IntrDisable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
+//	XAxiDma_IntrDisable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
+
+	//Enable IOC (interrupt on completion) for DMA to device (DMA read/MM2S)
+	XAxiDma_IntrEnable(components->AxiDma, XAXIDMA_IRQ_IOC_MASK, XAXIDMA_DMA_TO_DEVICE);
+//	XAxiDma_IntrEnable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
+
+	//Enable interrupts from GIC to PS
+//	Xil_ExceptionInit();	this function does nothing!
+	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,(Xil_ExceptionHandler)INTC_HANDLER,(void *)components->IntcInstancePtr);
+	Xil_ExceptionEnable();	//Enable interrupts in ARM
 	return Status;
 }
 /***************************************
- * dmaRead reads data from DDR to AXIS.
+ * enableInterrupts enables interrupts
  *
- * @param	components is a pointer to the controllers struct which holds necessary config and instance variables for initialization.
+ * @param	components is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
  *
  * @return
- * 		- XST_SUCCESS if successful,
- * 		- XST_FAILURE otherwise.
+ * 			None.
  *
  * @note	None.
  ***************************************/
-int dmaRead(u32 srcAddr, u32 length, controllers *components) {
+void enableInterrupts(controllers *components) {
+//	XScuGic_Enable(components->IntcInstancePtr, TX_INTR_ID);
+	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
+	XScuGic_Enable(components->IntcInstancePtr, HSYNC_INTR_ID);
+	XScuGic_Enable(components->IntcInstancePtr, FIFO_EMPTY_INTR_ID);
+	XScuGic_Enable(components->IntcInstancePtr, FIFO_FULL_INTR_ID);
+}
 
-	u32 Status;
-	u32 data_dma_to_device[8];	//dma-read from ddr to AXIS
-	u32 data_dma_to_vga[300];	//dma-read of half a line of 3byte data 400*3byte=1200=4byte*300 -> u32 * 300 = u24 * 400
-	u32 data_device_to_dma[8];
-				     //rRgGbBxx
-	u32 data_send =  0x0F0F0F00;
-	u32 data_send2 = 0x09090900;
-
-	Xil_DCacheDisable();
-
-	for(u32 i = 0; i<1200; i+=4) {
-		data_dma_to_vga[i] = i;
-	}
-
-//	Status = XAxiDma_SimpleTransfer(components->AxiDma,(UINTPTR) data_dma_to_vga, length*4, XAXIDMA_DMA_TO_DEVICE);
-	Status = XAxiDma_SimpleTransfer(components->AxiDma, (UINTPTR) data_send, 2, XAXIDMA_DMA_TO_DEVICE);
-	if(Status != XST_SUCCESS) return XST_FAILURE;
-	usleep(1);
-	if(XAxiDma_Busy(components->AxiDma, XAXIDMA_DMA_TO_DEVICE)) {
-		return XST_FAILURE;
-	}
-
-	Status = XAxiDma_SimpleTransfer(components->AxiDma, (UINTPTR) data_send2, 2, XAXIDMA_DMA_TO_DEVICE);
-	if(Status != XST_SUCCESS) return XST_FAILURE;
-	usleep(1);
-	if(XAxiDma_Busy(components->AxiDma, XAXIDMA_DMA_TO_DEVICE)) {
-		return XST_FAILURE;
-	}
-
+int dmaReadRun(controllers *components) {
+	//Setting DMA MM2S run/stop bit to 1
+	Xil_Out32((components->CfgPtr->BaseAddr + XAXIDMA_CR_OFFSET), 1);
 
 	return XST_SUCCESS;
+}
+int dmaReadReg(u32 *srcAddr, u32 length, controllers *components) {
+
+	//Setting DMA MM2S run/stop bit to 1
+	Xil_Out32((components->CfgPtr->BaseAddr + XAXIDMA_CR_OFFSET), XAXIDMA_CR_RUNSTOP_MASK);
+	//Write a valid source address to the MM2S_SA register
+	Xil_Out32((UINTPTR) (components->CfgPtr->BaseAddr + XAXIDMA_SRCADDR_OFFSET), (u32) srcAddr);
+	//Write the number of bytes to transfer -> this starts the DMA transaction
+	Xil_Out32((UINTPTR) (components->CfgPtr->BaseAddr + XAXIDMA_BUFFLEN_OFFSET), length * 4);
+
+	//Check if transmit is (not) done -> usleep
+	//instead of waiting in this function an interrupt will be called when transfer is complete
+	if(!(Xil_In32(components->CfgPtr->BaseAddr + XAXIDMA_SR_OFFSET) & 0x2)) {
+		usleep(1);
+	}
+	return XST_SUCCESS;
+}
+/***************************************
+ * TxIntrHandler is transmit interrupt on complete handler.
+ *
+ * @param	Callback is a pointer to the caller, in this case the interrupt controller.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
+void TxIntrHandler(void *Callback) {
+	//DMA transaction completed on DMA to DEVICE channel (DMA read, MM2S)
 }
 /***************************************
  * HsyncIntrHandler is Hsync interrupt handler.
@@ -162,13 +217,18 @@ int dmaRead(u32 srcAddr, u32 length, controllers *components) {
  * @note	None.
  ***************************************/
 void HSyncIntrHandler(void *Callback) {
-	INTC *IntcInstancePtr = (INTC *) Callback;
-	XScuGic_Disable(IntcInstancePtr, HSYNC_INTR_ID);
+
+//	INTC *IntcInstancePtr = (INTC *) Callback;
+	//Disable the interrupt
+	XScuGic_Disable(components->IntcInstancePtr, HSYNC_INTR_ID);
 	//Do some data transfer
-	//xil_printf("Hsync\r\n");
-	dmaRead(0, 0, components);
-	//End of data transfer
-	XScuGic_Enable(IntcInstancePtr, HSYNC_INTR_ID);
+	dmaReadReg(dataArray[i], 256, components);
+	//Sending 256 lines, then starting over
+	if(i<255)i++;
+//	i = (i<255) ? (i+1) : 0;
+
+	//End of data transfer, enable the interrupt
+	XScuGic_Enable(components->IntcInstancePtr, HSYNC_INTR_ID);
 }
 /***************************************
  * VsyncIntrHandler is Vsync interrupt handler.
@@ -180,10 +240,24 @@ void HSyncIntrHandler(void *Callback) {
  * @note	None.
  ***************************************/
 void VSyncIntrHandler(void *Callback) {
+	XScuGic_Disable(components->IntcInstancePtr, VSYNC_INTR_ID);
+	//Reset the line number identifier
+	i=-29;
+	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
+}
+
+
+void FifoEmptyHandler(void *Callback) {
 	INTC *IntcInstancePtr = (INTC *) Callback;
-	XScuGic_Disable(IntcInstancePtr, VSYNC_INTR_ID);
-	//Do some data transfer
-	XScuGic_Enable(IntcInstancePtr, VSYNC_INTR_ID);
+	XScuGic_Disable(IntcInstancePtr, FIFO_EMPTY_INTR_ID);
+	//
+	XScuGic_Enable(IntcInstancePtr, FIFO_EMPTY_INTR_ID);
+}
+void FifoFullHandler(void *Callback) {
+	INTC *IntcInstancePtr = (INTC *) Callback;
+	XScuGic_Disable(IntcInstancePtr, FIFO_FULL_INTR_ID);
+	//
+	XScuGic_Enable(IntcInstancePtr, FIFO_FULL_INTR_ID);
 }
 /***************************************
  * DisableIntrSystem disables connected interrupts.
@@ -198,7 +272,6 @@ void DisableIntrSystem(INTC *IntcInstancePtr) {
 	//XScuGic_Disconnect(IntcInstancePtr, HSYNC_INTR_ID);
 //	XScuGic_Disconnect(IntcInstancePtr, VSYNC_INTR_ID);
 }
-
 /***************************************
  * getChar reads from UART and returns keyboard input.
  *

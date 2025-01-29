@@ -5,55 +5,56 @@ static XAxiDma_Config *CfgPtr;		//XAxiDma config pointer
 static INTC Intc;					//Interrupt controller instance
 static XScuGic_Config *IntcConfig;	//XScuGic config pointer
 static XUartPs UartPs;				//Instance of UartPs driver
-static XUartPs_Config Cfg;			//XUartPs config pointer
-//static controllers *components;		//Struct that holds driver information -> defined as extern in libs.h
-
+static XUartPs_Config *Cfg;			//XUartPs config pointer
 
 int main(void) {
-	int Status;
-	//Assembling the controllers struct for easier access to the underlying drivers
+//	int Status;
 
-	controllers *components = {&AxiDma, CfgPtr, &Intc, IntcConfig, &UartPs, &Cfg};
-	/*
-	components->AxiDma=&AxiDma;
-	components->CfgPtr=CfgPtr;
-	components->IntcInstancePtr=&Intc;
-	components->IntcConfig = IntcConfig;
-	components->UartPs = &UartPs;
-	components->Cfg = &Cfg;
-	*/
+	//Assembling the controllers structure for easier access to the underlying drivers
+	components = &(controllers){&AxiDma, CfgPtr, &Intc, IntcConfig, &UartPs, Cfg};
+
 	//Initialize the UART, DMA and Interrupts
-	if(initUart(components) != XST_SUCCESS) {
-		xil_printf("Initialization of UartPs failed :(\n\r");
+	if(initPlatform(components) != XST_SUCCESS) {
 		return XST_FAILURE;
-	} else xil_printf("Initialization of UartPs done!\n\r");
+	}
 
-	if(initDMA(components) != XST_SUCCESS) {
-		xil_printf("Initialization of DMA failed :(\n\r");
-		return XST_FAILURE;
-	} 	else xil_printf("Initialization of DMA done!\n\r");
+	static u32 arrayLength = 512;
 
-	if(initInterrupt(components) != XST_SUCCESS) {
-		xil_printf("Initialization of interrupts failed.\n\r");
-		return XST_FAILURE;
-	} else xil_printf("Initialization of interrupts done!\r\n");
+	for(u32 i = 0; i < arrayLength; i++) {
+		if((i) < 16) data_dma_to_vga[i] = (i%16);										//RED 0-15
+		else if((i) < 32) data_dma_to_vga[i] = (i%16) << 8;								//GREEN 0-15
+		else if((i) < 48) data_dma_to_vga[i] = (i%16) << 16;							//BLUE 0-15
+		else if(i < 64) data_dma_to_vga[i] = ((i%16) << 8) + (i%16);					//RED + GREEN 0-15
+		else if(i < 80) data_dma_to_vga[i] = ((i%16) << 16) + ((i%16)<<8);				//GREEN + BLUE 0-15
+		else if(i < 96) data_dma_to_vga[i] = ((i%16) << 16) + (i%16);					//BLUE + RED 0-15
+		else if(i < 112) data_dma_to_vga[i] = ((i%16) << 16) + ((i%16) << 8) + (i%16);	//R+G+B 0-15
+		else if(i < 128) data_dma_to_vga[i] = ((i%16) << 16) + ((i%16) << 8) + (i%16);	//R+G+B 0-15
+		else if(i < 256) data_dma_to_vga[i] = i/2;
+		else data_dma_to_vga[i] = i<<8;
+	}
 
-	//Disable interrupts and return success
-	//DisableIntrSystem(components->IntcInstancePtr);
-	u32 dataArray2 = 0xABCDEFFE;
-	u8 dataArray[8] = {0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE};
-	u32 srcAddr2 = (u32) dataArray;
-	u32 srcAddr = (u32) dataArray2;
-	u8 length = 8;
+	for(u32 y = 0; y < arrayLength/2; y++) {
+		for(u32 x = 0; x < arrayLength/2; x++) {
+			dataArray[y][x] = data_dma_to_vga[y%128];
+//			dataArray[y][x] = data_dma_to_vga[x%128];
+		}
+	}
 
-	//Xil_DCacheFlushRange((u8 *) dataArray, length);
-
-	//dmaRead(srcAddr2, length, components);
+	//Flushing cache, so the DMA transmits defined data
+	Xil_DCacheFlushRange((INTPTR) (data_dma_to_vga), 512*4);
+	Xil_DCacheFlushRange((INTPTR) dataArray, 256*256*4);
 
 	xil_printf("Press a key to exit");
 	getChar(components->UartPs);
-	xil_printf("--- Exiting main() --- \r\n");
-
+	xil_printf("\n\rHappy DMA-ing\n\r");
+	//Enable the interrupts
+	enableInterrupts(components);
+	while(1)
+	{
+		//Something
+		//Xil_WaitForEventSet();
+	}
+	while(1);
 /*
 	// Set the RS bit in CR register
 	XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_CR_OFFSET, XAXIDMA_CR_RUNSTOP_MASK);
@@ -69,8 +70,6 @@ int main(void) {
 	// Setting the transfer length starts the transaction
 	XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_BUFFLEN_OFFSET, length);
 */
-
-
 
 	return XST_SUCCESS;
 }
