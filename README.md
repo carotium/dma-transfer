@@ -12,7 +12,7 @@ Defined here are library functions:
 ### [Libraries header](libs.h)
 Besides declaring functions, here are structs and variables that are used in the project:\
 **Structs**:
-- controllers.\
++ controllers.\
 **Variables**:
 - components, controllers struct
 - data_dma_to_vga, array of RGB values
