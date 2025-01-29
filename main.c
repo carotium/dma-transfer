@@ -47,7 +47,7 @@ int main(void) {
 	xil_printf("Press a key to exit");
 	getChar(components->UartPs);
 	xil_printf("\n\rHappy DMA-ing\n\r");
-	
+
 	//Enable the interrupts
 	enableInterrupts(components);
 	while(1)
