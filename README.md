@@ -1,5 +1,19 @@
 # DMA-Transfer
-A library for initiating dma transfers.
+A library for initiating dma transfers. Hardware project is based on the [***Minized board***](https://www.avnet.com/wps/portal/us/products/avnet-boards/avnet-board-families/minized/).
 ## File descriptions
-### (main.c)[/main.c]
-This project initializes UART, DMA and interrupts for PS on MiniZed board. My main [file](/main.c)
+### [Main program](main.c)
+In the main program, I initialize the UART, DMA and interrupts. Then I scan for a keyboard input, before enabling the interrupts.
+### [Libraries program](libs.c)
+Defined here are library functions:
+->initPlatform(controllers *components), initializes UART, DMA and interrupts:
+    ->initDMA(controllers *components),
+    ->initUART(controllers *components),
+    ->initInterrupt(controllers *components).
+### [Libraries header](libs.h)
+Besides declaring functions, here are structs and variables that are used in the project:
+**->Structs**:
+    ->controllers.
+**->Variables**:
+    ->components, controllers struct
+    ->data_dma_to_vga, array of RGB values
+    ->dataArray, 2D array of RGB values
