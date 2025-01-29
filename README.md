@@ -2,7 +2,7 @@
 A library for initiating dma transfers. Hardware project is based on the [***Minized board***](https://www.avnet.com/wps/portal/us/products/avnet-boards/avnet-board-families/minized/).
 ## File descriptions
 ### [Main program](main.c)
-In the main program, I initialize the UART, DMA and interrupts. Then I scan for a keyboard input, before enabling the interrupts.
+In the main program, I initialize the UART, DMA and interrupts. Then I scan for a keyboard input, before enabling the interrupts. The program then enters an empty while loop.
 ### [Libraries program](libs.c)
 Defined here are library functions:
 ->initPlatform(controllers *components), initializes UART, DMA and interrupts:
