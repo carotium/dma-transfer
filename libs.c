@@ -287,3 +287,71 @@ u8 getChar(XUartPs *UartPsPtr) {
 	} while (receive == 0);
 	return *(u8 *) (XPAR_PS7_RAM_1_S_AXI_HIGHADDR - 0xFFF);
 }
+
+void drawLine() {
+	int x1, x2, y1, y2;
+	char c;
+	x1 = rand()%256;
+	y1 = rand()%256;
+	x2 = rand()%256;
+	y2 = rand()%256;
+	c = rand()%64;
+
+	line(x1, y1, x2, y2, c);
+	usleep(30000);	//cakaj 300ms ?
+}
+
+void line(int x0, int y0, int x1, int y1, char c) {
+/*
+	//first implementation
+	int dx =  abs (x1 - x0), sx = x0 < x1 ? 1 : -1;
+  	int dy = -abs (y1 - y0), sy = y0 < y1 ? 1 : -1; 
+  	int err = dx + dy, e2; // error value e_xy
+ 
+  	for (;;){  // loop
+    	setPixel (x0,y0);
+		if (x0 == x1 && y0 == y1) break;
+		e2 = 2 * err;
+		if (e2 >= dy) { err += dy; x0 += sx; } // e_xy+e_x > 0
+		if (e2 <= dx) { err += dx; y0 += sy; } // e_xy+e_y < 0
+	}
+*/
+	//second implementation, maybe AI created it for this specific case
+	int dx = abs(x1-x0);
+	int dy = abs(y1-y0);
+	int sx = (x0 < x1) ? 1 : -1;
+	int sy = (y0 < y1) ? 1 : -1;
+	int err = dx-dy;
+	int e2;
+
+	while(1) {
+		data_dma_to_vga[y0%512] = c;
+		if(x0 == x1 && y0 == y1) break;
+		e2 = 2*err;
+		if(e2 > -dy) {
+			err -= dy;
+			x0 += sx;
+		}
+		if(e2 < dx) {
+			err += dx;
+			y0 += sy;
+		}
+	}
+/*
+	//third implementation
+	int dx = abs(x1-x0), sx = x0<x1 ? 1 : -1;
+	int dy = abs(y1-y0), sy = y0<y1 ? 1 : -1;
+	int err = (dx>dy ? dx : -dy)/2, e2;
+	char *p;
+
+	for(;;){
+		p= (char *)XPAR_AXI_BRAM_CTRL_0_S_AXI_BASEADDR+x0+512*y0;
+		*p = c;
+
+		if (x0==x1 && y0==y1) break;
+		e2 = err;
+		if (e2 >-dx) { err -= dy; x0 += sx; }
+		if (e2 < dy) { err += dx; y0 += sy; }
+	}
+*/
+}

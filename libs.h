@@ -102,4 +102,7 @@ int dmaSend(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length, int Direction);
 int dmaReadRun(controllers *components);
 int dmaReadReg(u32 *srcAddr, u32 length, controllers *components);
 
+void line(int x0, int y0, int x1, int y1, char c);
+void drawLine();
+
 #endif		//End of protection macro
