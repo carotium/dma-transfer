@@ -7,55 +7,111 @@ static XScuGic_Config *IntcConfig;	//XScuGic config pointer
 static XUartPs UartPs;				//Instance of UartPs driver
 static XUartPs_Config *Cfg;			//XUartPs config pointer
 
+/***************************************
+ * Line drawing variables
+ ***************************************/
+//Array of drawn lines' coordinates (256 lines on the screen)
+u32 startX[256], endX[256], startY[256], endY[256];
+//Speed of line's coordinates
+s32 dx0, dx1, dy0, dy1;
+//Color palette, 16 colors ATM
+u32 colorPalette[16] = {
+		0xc3a2c3,
+		0xc8634c,
+		0xcd23d4,
+		0xd1e45c,
+		0xd6a4e5,
+		0xdf3d5e,
+		0xe7d5d6,
+		0xf06e4f,
+		0xf906c8,
+		0xf8fa99,
+		0xf8ee6a,
+		0xf8e23b,
+		0xf8d60c,
+		0xcffb11,
+		0xa72016,
+		0x7e451a
+};
+
+
+
 int main(void) {
-//	int Status;
 
 	//Assembling the controllers structure for easier access to the underlying drivers
 	components = &(controllers){&AxiDma, CfgPtr, &Intc, IntcConfig, &UartPs, Cfg};
 
 	//Initialize the UART, DMA and Interrupts
-	if(initPlatform(components) != XST_SUCCESS) {
-		return XST_FAILURE;
-	}
-
-	static u32 arrayLength = 512;
-
-	for(u32 i = 0; i < arrayLength; i++) {
-		if((i) < 16) data_dma_to_vga[i] = (i%16);										//RED 0-15
-		else if((i) < 32) data_dma_to_vga[i] = (i%16) << 8;								//GREEN 0-15
-		else if((i) < 48) data_dma_to_vga[i] = (i%16) << 16;							//BLUE 0-15
-		else if(i < 64) data_dma_to_vga[i] = ((i%16) << 8) + (i%16);					//RED + GREEN 0-15
-		else if(i < 80) data_dma_to_vga[i] = ((i%16) << 16) + ((i%16)<<8);				//GREEN + BLUE 0-15
-		else if(i < 96) data_dma_to_vga[i] = ((i%16) << 16) + (i%16);					//BLUE + RED 0-15
-		else if(i < 112) data_dma_to_vga[i] = ((i%16) << 16) + ((i%16) << 8) + (i%16);	//R+G+B 0-15
-		else if(i < 128) data_dma_to_vga[i] = ((i%16) << 16) + ((i%16) << 8) + (i%16);	//R+G+B 0-15
-		else if(i < 256) data_dma_to_vga[i] = i/2;
-		else data_dma_to_vga[i] = i<<8;
-	}
-
-	for(u32 y = 0; y < arrayLength/2; y++) {
-		for(u32 x = 0; x < arrayLength/2; x++) {
-			dataArray[y][x] = data_dma_to_vga[y%128];
-//			dataArray[y][x] = data_dma_to_vga[x%128];
-		}
-	}
+	if(initPlatform(components) != XST_SUCCESS) return XST_FAILURE;
 
 	//Flushing cache, so the DMA transmits defined data
-	Xil_DCacheFlushRange((INTPTR) (data_dma_to_vga), 512*4);
-	Xil_DCacheFlushRange((INTPTR) dataArray, 256*256*4);
+	Xil_DCacheFlushRange((INTPTR) dataArray, 640*480*4);
 
-	xil_printf("Press a key to exit");
+	static enum colors color;
+
+	for(int i = 0; i < 256; i++) {
+
+//		switch(i%15) {
+//		case 0:  color = blue; break;
+//		case 1:  color = green; break;
+//		case 2:  color = cyan; break;
+//		case 3:  color = red; break;
+//		case 4:  color = purple; break;
+//		case 5:  color = brown; break;
+//		case 6:  color = gray; break;
+//		case 7:  color = d_gray; break;
+//		case 8:  color = l_blue; break;
+//		case 9:  color = l_green; break;
+//		case 10: color = l_cyan; break;
+//		case 11: color = l_red; break;
+//		case 12: color = l_purple; break;
+//		case 13: color = yellow; break;
+//		case 14: color = white; break;
+//		default: break;
+//		}
+		color = white;
+
+		printLetter(getLetter(i), color);
+	}
+
+	xil_printf("Press a key to continue\n\r");
 	getChar(components->UartPs);
 	xil_printf("\n\rHappy DMA-ing\n\r");
 
 	//Enable the interrupts
 	enableInterrupts(components);
+
+	//Setting starting line parameters
+	lineStart(0);
+
 	while(1)
 	{
-		//Something
-		//Xil_WaitForEventSet();
+		//Print to VGA from UART input
+		printLetter(getLetter(getChar(components->UartPs)), color);
+
+/******	Line drawing algorithm ******
+*************************************
+		static volatile u16 i = 0;
+
+		static volatile u32 t = 0;
+
+		if(i == 65534) {
+			static int j = 0;
+			if(j == 0) {
+				drawLines(t%256);
+				j += 1;
+
+				if(t < 255) t++;
+				else t = 0;
+			} else j--;
+		}
+
+		if(i < 65534) i++;
+		else i = 0;
+************************************/
 	}
 	while(1);
+
 /*
 	// Set the RS bit in CR register
 	XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_CR_OFFSET, XAXIDMA_CR_RUNSTOP_MASK);

@@ -1,9 +1,11 @@
 #include "libs.h"
 
-controllers *components;	//Struct that holds driver information -> defined as extern in libs.h
-u32 data_dma_to_vga[512];
-u32 dataArray[256][256];
+//Struct that holds driver information
+controllers *components;
+
+u32 dataArray[480][640];
 static volatile s32 i = 0;	//line number to send
+static u32 vgaIndex = 0;
 
 /***************************************
  * initPlatform initializes the platform. It initializes UART, DMA and interrupts.
@@ -218,10 +220,16 @@ void TxIntrHandler(void *Callback) {
 void HSyncIntrHandler(void *Callback) {
 	//Disable the interrupt
 	XScuGic_Disable(components->IntcInstancePtr, HSYNC_INTR_ID);
+
+//	while(i<0) i++;
 	//Do some data transfer
-	dmaReadReg(dataArray[i], 256, components);
-	//Sending 256 lines, then starting over
-	if(i<255)i++;
+//	Xil_DCacheFlushRange((INTPTR) dataArray, 512*512*4);
+	dmaReadReg(dataArray[i], 640, components);
+	Xil_DCacheFlushRange((INTPTR) dataArray[(i+1)%480], 640*4);
+
+//	dmaReadReg(data_dma_to_vga+i, 512, components);
+	//Sending 512 lines, then starting over
+	if(i<639)i++;
 //	i = (i<255) ? (i+1) : 0;
 
 	//End of data transfer, enable the interrupt
@@ -237,9 +245,12 @@ void HSyncIntrHandler(void *Callback) {
  * @note	None.
  ***************************************/
 void VSyncIntrHandler(void *Callback) {
+
 	XScuGic_Disable(components->IntcInstancePtr, VSYNC_INTR_ID);
-	//Reset the line number identifier
-	i=-29;
+
+	//Reset the line number identifier (its negative because I need to fix the interrupt in hardware
+	i=-35;
+
 	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
 }
 
@@ -288,70 +299,151 @@ u8 getChar(XUartPs *UartPsPtr) {
 	return *(u8 *) (XPAR_PS7_RAM_1_S_AXI_HIGHADDR - 0xFFF);
 }
 
-void drawLine() {
-	int x1, x2, y1, y2;
-	char c;
-	x1 = rand()%256;
-	y1 = rand()%256;
-	x2 = rand()%256;
-	y2 = rand()%256;
-	c = rand()%64;
+void drawLines(u32 t) {
 
-	line(x1, y1, x2, y2, c);
-	usleep(30000);	//cakaj 300ms ?
+	drawLine(startX[t], startY[t], endX[t], endY[t], colorPalette[t%16]);
+
+	//Check for screen borders and reverse direction
+	if(startX[t] < abs(dx0) || startX[t] >= (SCREEN_WIDTH-abs(dx0))) dx0 = -dx0;
+	if(startY[t] < (abs(dy0)+1) || startY[t] >= (SCREEN_HEIGHT-abs(dy0))) dy0 = -dy0;
+	if(endX[t] < abs(dx1) || endX[t] >= (SCREEN_WIDTH-abs(dx1))) dx1 = -dx1;
+	if(endY[t] < abs(dy1) || endY[t] >= (SCREEN_HEIGHT-abs(dy1))) dy1 = -dy1;
+
+	static int full = 0;
+	if(t == 255) full = 1;
+
+	if(full) {
+//		if(t == 0) lineStart(1);
+		//Start deleting lines
+		u32 indexLast = (t == 255) ? 0 : (t + 1);
+//		u32 indexLast = (t < 255) ? (-(t-255))%256 : (t-255)%256;
+		eraseLine(startX[indexLast],
+				  startY[indexLast],
+				  endX[indexLast],
+				  endY[indexLast]);
+	}
+	calculateLine((t == 255) ? 0 : (t + 1));
 }
 
-void line(int x0, int y0, int x1, int y1, char c) {
-/*
-	//first implementation
+void calculateLine(u32 t) {
+	//Coordinates for next line
+	u32 indexNext = (t == 0) ? 255 : (t-1)%256;
+	startX[t%256] = startX[indexNext] + dx0;
+	startY[t%256] = startY[indexNext] + dy0;
+	endX[t%256] = endX[indexNext] + dx1;
+	endY[t%256] = endY[indexNext] + dy1;
+}
+
+void drawLine(int x0, int y0, int x1, int y1, int color) {
+
+	//Bresenham's line algorithm implementation
 	int dx =  abs (x1 - x0), sx = x0 < x1 ? 1 : -1;
-  	int dy = -abs (y1 - y0), sy = y0 < y1 ? 1 : -1; 
-  	int err = dx + dy, e2; // error value e_xy
+  	int dy = abs (y1 - y0), sy = y0 < y1 ? 1 : -1;
+  	int err = dx - dy, e2; // error value e_xy
  
   	for (;;){  // loop
-    	setPixel (x0,y0);
-		if (x0 == x1 && y0 == y1) break;
+    	*(*(dataArray + y0)+x0) = color;
+    	if(x0 == x1 && y0 == y1) break;
 		e2 = 2 * err;
-		if (e2 >= dy) { err += dy; x0 += sx; } // e_xy+e_x > 0
-		if (e2 <= dx) { err += dx; y0 += sy; } // e_xy+e_y < 0
-	}
-*/
-	//second implementation, maybe AI created it for this specific case
-	int dx = abs(x1-x0);
-	int dy = abs(y1-y0);
-	int sx = (x0 < x1) ? 1 : -1;
-	int sy = (y0 < y1) ? 1 : -1;
-	int err = dx-dy;
-	int e2;
-
-	while(1) {
-		data_dma_to_vga[y0%512] = c;
-		if(x0 == x1 && y0 == y1) break;
-		e2 = 2*err;
-		if(e2 > -dy) {
+		if (e2 >= -dy) {
+			if(x0 == x1) break;
 			err -= dy;
 			x0 += sx;
-		}
-		if(e2 < dx) {
+		} // e_xy+e_x > 0
+		if (e2 <= dx) {
+			if(y0 == y1) break;
 			err += dx;
 			y0 += sy;
+		} // e_xy+e_y < 0
+	}
+}
+
+void eraseLine(u32 x0, u32 y0, u32 x1, u32 y1) {
+	//Bresenham's line algorithm implementation
+	int dx =  abs (x1 - x0), sx = x0 < x1 ? 1 : -1;
+	int dy = abs (y1 - y0), sy = y0 < y1 ? 1 : -1;
+	int err = dx - dy, e2; // error value e_xy
+	for (;;){  // loop
+	    	*(*(dataArray + y0)+x0) = 0;
+	    	if(x0 == x1 && y0 == y1) break;
+			e2 = 2 * err;
+			if (e2 >= -dy) {
+				if(x0 == x1) break;
+				err -= dy;
+				x0 += sx;
+			} // e_xy+e_x > 0
+			if (e2 <= dx) {
+				if(y0 == y1) break;
+				err += dx;
+				y0 += sy;
+			} // e_xy+e_y < 0
+		}
+}
+
+void lineStart(int state) {
+	if (state == 0)
+	{
+		startX[0] = rand()%SCREEN_WIDTH;
+		startY[0] = rand()%SCREEN_HEIGHT;
+		endX[0] = rand()%SCREEN_WIDTH;
+		endY[0] = rand()%SCREEN_HEIGHT;
+	}
+
+	dx0 = 4;
+	dx1 = 3;
+	dy0 = 5;
+	dy1 = 6;
+
+//	dx0 = rand()%6 + 1;
+//	dx1 = rand()%6 + 1;
+//	dy0 = rand()%6 + 1;
+//	dy1 = rand()%6 + 1;
+}
+
+u8 *getLetter(u32 asciiNum) {
+	u8 *character;
+	u32 ascii = asciiNum * 16;
+	character = (IBM_VGA_8x16 + ascii);
+
+	return character;
+}
+
+void printLetter(u8 *character, enum colors color) {
+	//Erase character at this index prior to printing it
+	eraseLetter();
+
+	for(int i = 0; i < 16; i++) {
+
+		u8 row = *(character + i);
+
+		for(int j = 0; j < 8; j++) {
+			//extract single pixel
+			u32 selector = power(2, (7-j));
+			u32 pixel = row & selector;
+			u8 pixelValue = (pixel != 0) ? 1 : 0;
+
+//			dataArray[i+y*16][j+x*8] = pixelValue * color;
+			dataArray[i+vgaIndex/80*16][j+(vgaIndex*8)%640] = pixelValue * color;
 		}
 	}
-/*
-	//third implementation
-	int dx = abs(x1-x0), sx = x0<x1 ? 1 : -1;
-	int dy = abs(y1-y0), sy = y0<y1 ? 1 : -1;
-	int err = (dx>dy ? dx : -dy)/2, e2;
-	char *p;
+	if(vgaIndex < 2399) vgaIndex++;	//640/8=80, 480/16=30; 80*30=2400
+	else vgaIndex = 0;
 
-	for(;;){
-		p= (char *)XPAR_AXI_BRAM_CTRL_0_S_AXI_BASEADDR+x0+512*y0;
-		*p = c;
+}
 
-		if (x0==x1 && y0==y1) break;
-		e2 = err;
-		if (e2 >-dx) { err -= dy; x0 += sx; }
-		if (e2 < dy) { err += dx; y0 += sy; }
+void eraseLetter(void) {
+	for(int i = 0; i < 16; i++) {
+		for(int j = 0; j < 8; j++) {
+			dataArray[i+vgaIndex/80*16][j+(vgaIndex*8)%640] = 0;
+			}
+		}
+}
+
+u32 power(u32 base, u32 power) {
+	if (power == 0) return 1;
+	u32 number = 1;
+	for(int i = 0; i < power; i++) {
+		number *= base;
 	}
-*/
+	return number;
 }
