@@ -60,7 +60,7 @@ extern void xil_printf(const char *format, ...);
 /***************************************
  * Enum definitions
  ***************************************/
-enum colors {
+typedef enum colors_t {
 	black	=	0x0,
 	blue	=	0x0A0000,
 	green	=	0x000A00,
@@ -77,7 +77,7 @@ enum colors {
 	l_purple=	0x0F050F,
 	yellow	=	0x050F0F,
 	white	=	0x0F0F0F
-};
+} colors;
 /***************************************
  * Type definitions
  ***************************************/
@@ -127,12 +127,15 @@ void drawLine(int x0, int y0, int x1, int y1, int color);
 void drawLines(u32 t);
 void lineStart(int state);
 void calculateLine(u32 t);
-void eraseLine(u32 x0, u32 y0, u32 x1, u32 y1);
+void eraseLineB(u32 x0, u32 y0, u32 x1, u32 y1);
 
 //Character drawing functions
 u8 *getLetter(u32 asciiNum);
-void printLetter(u8 *character, enum colors color);
+void printLetter(u8 *character, colors color);
 void eraseLetter(void);
+void printVGA(const char* string, colors color);
+void nextLine();
+void nextTab();
 
 //yep
 u32 power(u32 base, u32 power);

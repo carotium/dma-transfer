@@ -317,7 +317,7 @@ void drawLines(u32 t) {
 		//Start deleting lines
 		u32 indexLast = (t == 255) ? 0 : (t + 1);
 //		u32 indexLast = (t < 255) ? (-(t-255))%256 : (t-255)%256;
-		eraseLine(startX[indexLast],
+		eraseLineB(startX[indexLast],
 				  startY[indexLast],
 				  endX[indexLast],
 				  endY[indexLast]);
@@ -358,7 +358,7 @@ void drawLine(int x0, int y0, int x1, int y1, int color) {
 	}
 }
 
-void eraseLine(u32 x0, u32 y0, u32 x1, u32 y1) {
+void eraseLineB(u32 x0, u32 y0, u32 x1, u32 y1) {
 	//Bresenham's line algorithm implementation
 	int dx =  abs (x1 - x0), sx = x0 < x1 ? 1 : -1;
 	int dy = abs (y1 - y0), sy = y0 < y1 ? 1 : -1;
@@ -404,11 +404,29 @@ u8 *getLetter(u32 asciiNum) {
 	u8 *character;
 	u32 ascii = asciiNum * 16;
 	character = (IBM_VGA_8x16 + ascii);
+	if(asciiNum == 0xA || asciiNum == 0xD) {	//Line feed '\n' or return key
+		nextLine();
+		return getLetter(dataArray[vgaIndex/80*16][(vgaIndex*8)%640]);
+		vgaIndex--;
+
+	} else if(asciiNum == 0x9) {				//Horizontal tab key or '\r'
+		nextTab();
+		return getLetter(dataArray[vgaIndex/80*16][(vgaIndex*8)%640]);
+		vgaIndex--;
+	}
 
 	return character;
 }
 
-void printLetter(u8 *character, enum colors color) {
+void eraseLetter(void) {
+	for(int i = 0; i < 16; i++) {
+		for(int j = 0; j < 8; j++) {
+			dataArray[i+vgaIndex/80*16][j+(vgaIndex*8)%640] = 0;
+			}
+		}
+}
+
+void printLetter(u8 *character, colors color) {
 	//Erase character at this index prior to printing it
 	eraseLetter();
 
@@ -428,15 +446,23 @@ void printLetter(u8 *character, enum colors color) {
 	}
 	if(vgaIndex < 2399) vgaIndex++;	//640/8=80, 480/16=30; 80*30=2400
 	else vgaIndex = 0;
-
 }
 
-void eraseLetter(void) {
-	for(int i = 0; i < 16; i++) {
-		for(int j = 0; j < 8; j++) {
-			dataArray[i+vgaIndex/80*16][j+(vgaIndex*8)%640] = 0;
-			}
-		}
+void printVGA(const char* string, colors color) {
+	u32 i = 0;		//Index for the string
+	while(string[i] != 0) {
+		printLetter(getLetter(string[i]), color);
+		i++;
+	}
+}
+
+void nextLine() {
+	vgaIndex = (vgaIndex/80)*80 + SCREEN_WIDTH/8-1;
+//	eraseLine();
+}
+
+void nextTab() {
+	vgaIndex += 3;
 }
 
 u32 power(u32 base, u32 power) {

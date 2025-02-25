@@ -47,10 +47,10 @@ int main(void) {
 	//Flushing cache, so the DMA transmits defined data
 	Xil_DCacheFlushRange((INTPTR) dataArray, 640*480*4);
 
-	static enum colors color;
+	static colors color;
 
-	for(int i = 0; i < 256; i++) {
-
+//	for(int i = 0; i < 256; i++) {
+//
 //		switch(i%15) {
 //		case 0:  color = blue; break;
 //		case 1:  color = green; break;
@@ -69,10 +69,10 @@ int main(void) {
 //		case 14: color = white; break;
 //		default: break;
 //		}
-		color = white;
-
-		printLetter(getLetter(i), color);
-	}
+//		color = white;
+//
+//		printLetter(getLetter(i), color);
+//	}
 
 	xil_printf("Press a key to continue\n\r");
 	getChar(components->UartPs);
@@ -84,10 +84,12 @@ int main(void) {
 	//Setting starting line parameters
 	lineStart(0);
 
+	printVGA("\nWhat can you say, I'm a decent programmer\t", white);
+
 	while(1)
 	{
 		//Print to VGA from UART input
-		printLetter(getLetter(getChar(components->UartPs)), color);
+		printLetter(getLetter(getChar(components->UartPs)), white);
 
 /******	Line drawing algorithm ******
 *************************************
