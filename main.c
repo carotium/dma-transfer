@@ -1,5 +1,8 @@
 #include "libs.h"
 
+/***************************************
+ * Config and instance variables for DMA, Interrupt controller and UART
+ ***************************************/
 static XAxiDma AxiDma;				//Instance of XAxiDma driver
 static XAxiDma_Config *CfgPtr;		//XAxiDma config pointer
 static INTC Intc;					//Interrupt controller instance
@@ -33,8 +36,6 @@ u32 colorPalette[16] = {
 		0xa72016,
 		0x7e451a
 };
-
-
 
 int main(void) {
 
@@ -75,6 +76,7 @@ int main(void) {
 //	}
 
 	xil_printf("Press a key to continue\n\r");
+	//Reads user input from the UART
 	getChar(components->UartPs);
 	xil_printf("\n\rHappy DMA-ing\n\r");
 
@@ -91,7 +93,8 @@ int main(void) {
 		//Print to VGA from UART input
 		printLetter(getLetter(getChar(components->UartPs)), white);
 
-/******	Line drawing algorithm ******
+/************************************
+*******	Line drawing algorithm ******
 *************************************
 		static volatile u16 i = 0;
 
@@ -112,22 +115,8 @@ int main(void) {
 		else i = 0;
 ************************************/
 	}
+	//Safety while loop
 	while(1);
 
-/*
-	// Set the RS bit in CR register
-	XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_CR_OFFSET, XAXIDMA_CR_RUNSTOP_MASK);
-	// Reset the DMA
-	XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_CR_OFFSET, XAXIDMA_CR_RESET_MASK);
-
-	// Wait for the reset to complete
-	while (XAxiDma_ReadReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_CR_OFFSET) & XAXIDMA_CR_RESET_MASK);
-
-	// Set the source address
-	XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_SRCADDR_OFFSET, &srcAddr);
-
-	// Setting the transfer length starts the transaction
-	XAxiDma_WriteReg(XPAR_AXI_DMA_0_BASEADDR, XAXIDMA_TX_OFFSET + XAXIDMA_BUFFLEN_OFFSET, length);
-*/
 	return XST_SUCCESS;
 }
