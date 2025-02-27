@@ -64,12 +64,12 @@ int initUART(controllers *components) {
 	//Get the UART configuration
 	components->Cfg = XUartPs_LookupConfig(UART_DEVICE_ID);		
 	if (components->Cfg == NULL) return XST_FAILURE;
-	//Initialize the UART
+	//Initialize UART
 	Status = XUartPs_CfgInitialize(components->UartPs, components->Cfg, components->Cfg->BaseAddress);		
 	if (Status != XST_SUCCESS) return XST_FAILURE;
 	//Set the baud rate
 	XUartPs_SetBaudRate(components->UartPs, 115200);		
-	//Set the UART in normal mode
+	//Set UART in normal mode
 	XUartPs_SetOperMode(components->UartPs , XUARTPS_OPER_MODE_NORMAL); 	
 
 	return Status;
@@ -95,7 +95,7 @@ int initDMA(controllers *components) {
 		xil_printf("No config found for %d\r\n", DMA_DEV_ID);
 		return XST_FAILURE;
 	}
-	//Initialize the DMA
+	//Initialize DMA
 	Status = XAxiDma_CfgInitialize(components->AxiDma, components->CfgPtr);
 	if(Status != XST_SUCCESS) {xil_printf("Initialization failed"); return XST_FAILURE;}
 	if(XAxiDma_HasSg(components->AxiDma)) {xil_printf("Device configured as SG mode \r\n"); return XST_FAILURE;}
@@ -129,7 +129,7 @@ int initInterrupt(controllers *components) {
 	Status = XScuGic_SelfTest(components->IntcInstancePtr);
 	if(Status != XST_SUCCESS) {xil_printf("Failed interrupt setup\r\n"); return XST_FAILURE;}
 
-	//Set priority for connected interrupts (0 is highest, 0xF8 is highest, with 0x8 increments
+	//Set priority for connected interrupts (0 is highest, 0xF8 is highest, with 0x8 increments)
 	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, TX_INTR_ID, 0x90, 0x3);
 	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, VSYNC_INTR_ID, 0x98, 0x3);
 	XScuGic_SetPriorityTriggerType(components->IntcInstancePtr, HSYNC_INTR_ID, 0xA0, 0x3);
@@ -177,6 +177,19 @@ void enableInterrupts(controllers *components) {
 	XScuGic_Enable(components->IntcInstancePtr, FIFO_FULL_INTR_ID);
 }
 
+/***************************************
+ * dmaReadReg sets the appropriate DMA registers for a read operation MM2S.
+ *
+ * @param	srcAddr is the source address from where to read.
+ * @param	length is the number of bytes to read.
+ * @param	components is a pointer to the controllers structure which holds necessary configuration and instance variables.
+ *
+ * @return
+ * 		- XST_SUCCESS if successful,
+ * 		- XST_FAILURE otherwise.
+ *
+ * @note	None.
+ ***************************************/
 int dmaReadReg(u32 *srcAddr, u32 length, controllers *components) {
 	//Setting DMA MM2S run/stop bit to 1
 	Xil_Out32((components->CfgPtr->BaseAddr + XAXIDMA_CR_OFFSET), XAXIDMA_CR_RUNSTOP_MASK);
@@ -246,14 +259,15 @@ void VSyncIntrHandler(void *Callback) {
 	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
 }
 
-
-
+//Soon to be erased
 void FifoEmptyHandler(void *Callback) {
 	INTC *IntcInstancePtr = (INTC *) Callback;
 	XScuGic_Disable(IntcInstancePtr, FIFO_EMPTY_INTR_ID);
 	//
 	XScuGic_Enable(IntcInstancePtr, FIFO_EMPTY_INTR_ID);
 }
+
+//Soon to be erased
 void FifoFullHandler(void *Callback) {
 	INTC *IntcInstancePtr = (INTC *) Callback;
 	XScuGic_Disable(IntcInstancePtr, FIFO_FULL_INTR_ID);
@@ -266,7 +280,7 @@ void FifoFullHandler(void *Callback) {
  *
  * @param	UartPsPtr is a pointer to the XUartPs instance.
  *
- * @return	The character typed in from the user.
+ * @return	The character typed to the UART.
  *
  * @note	None.
  ***************************************/
@@ -280,7 +294,8 @@ u8 getChar(XUartPs *UartPsPtr) {
 }
 
 /***************************************
- * drawLines draws 256 lines on the screen using Bresenham's line algorithm.
+ * drawLines draws multiple lines to the dataArray using Bresenham's line algorithm.
+ * It also erases the last line drawn and calculates the next line's coordinates.
  *
  * @param	t is an index for which line to draw.
  *
@@ -334,7 +349,7 @@ void calculateLine(u32 t) {
 }
 
 /***************************************
- * drawLine draws lines using Bresenham's line algorithm.
+ * drawLine draws a line to the dataArray using Bresenham's line algorithm.
  *
  * @param	x0 is the starting x coordinate of the line.
  * @param	y0 is the starting y coordinate of the line.
@@ -370,7 +385,7 @@ void drawLine(int x0, int y0, int x1, int y1, int color) {
 }
 
 /***************************************
- * eraseLineB erases lines using Bresenham's line algorithm.
+ * eraseLineB erases a line in the dataArray using Bresenham's line algorithm.
  *
  * @param	x0 is the starting coordinate of the line to erase.
  * @param	y0 is the starting coordinate of the line to erase.
