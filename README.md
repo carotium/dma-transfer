@@ -17,4 +17,3 @@ Besides declaring functions, here are structs and variables that are relevant an
 ***Variables***:
 - **components**, controllers struct
 - **dataArray**, 2D array of *u32* RGB values
-- **i**
