@@ -4,7 +4,7 @@
 controllers *components;
 
 u32 dataArray[480][640];
-static volatile s32 i = 0;	//line number to send
+static volatile s32 lineIndex = 0;	//line number to send
 static u32 vgaIndex = 0;
 
 /***************************************
@@ -229,7 +229,7 @@ void HSyncIntrHandler(void *Callback) {
 
 //	dmaReadReg(data_dma_to_vga+i, 512, components);
 	//Sending 512 lines, then starting over
-	if(i<639)i++;
+	if(i<639)lineIndex++;
 //	i = (i<255) ? (i+1) : 0;
 
 	//End of data transfer, enable the interrupt
@@ -249,7 +249,7 @@ void VSyncIntrHandler(void *Callback) {
 	XScuGic_Disable(components->IntcInstancePtr, VSYNC_INTR_ID);
 
 	//Reset the line number identifier (its negative because I need to fix the interrupt in hardware
-	i=-35;
+	lineIndex=-35;
 
 	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
 }
