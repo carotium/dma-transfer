@@ -51,6 +51,7 @@
 #define VSYNC_INTR_ID		XPAR_FABRIC_VSYNC_INTROUT_VEC_ID
 #define FIFO_EMPTY_INTR_ID	XPAR_FABRIC_FIFO_EMPTY_INTROUT_VEC_ID
 #define FIFO_FULL_INTR_ID	XPAR_FABRIC_FIFO_FULL_INTROUT_VEC_ID
+
 /***************************************
  * Device IDs
  ***************************************/
@@ -67,6 +68,7 @@
 #ifndef DEBUG
 extern void xil_printf(const char *format, ...);
 #endif
+
 /***************************************
  * Enum definitions
  ***************************************/
@@ -88,8 +90,9 @@ typedef enum colors_t {
 	yellow	=	0x050F0F,
 	white	=	0x0F0F0F
 } colors;
+
 /***************************************
- * Type definitions
+ * Struct definitions
  ***************************************/
 typedef struct controllers_t {
 	XAxiDma *AxiDma;			//Pointer to Axi Dma
