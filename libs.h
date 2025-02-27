@@ -2,17 +2,27 @@
 #ifndef LIBS_H		//Protection macro
 #define LIBS_H
 
+/***************************************
+ * Include files
+ ***************************************/
+//Standard xparameters library
+#include "xparameters.h"
+//DMA library
 #include "xaxidma.h"
 #include "xaxidma_hw.h"
-#include "xparameters.h"
+//Exception library
 #include "xil_exception.h"
+//Cache library
 #include "xil_cache.h"
+//Debug library
 #include "xdebug.h"
+//Interrupt controller library
 #include "xscugic.h"
+//UART library
 #include "xuartps.h"
+//Sleep library
 #include "sleep.h"
-//#include "math.h"
-
+//Standard library
 #include "stdio.h"
 #include "stdlib.h"
 
