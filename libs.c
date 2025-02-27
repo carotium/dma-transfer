@@ -145,11 +145,9 @@ int initInterrupt(controllers *components) {
 
 	//Disable all DMA interrupts before setup
 	XAxiDma_IntrDisable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
-//	XAxiDma_IntrDisable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
 
 	//Enable IOC (interrupt on completion) for DMA to device (DMA read/MM2S)
 	XAxiDma_IntrEnable(components->AxiDma, XAXIDMA_IRQ_IOC_MASK, XAXIDMA_DMA_TO_DEVICE);
-//	XAxiDma_IntrEnable(components->AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
 
 	//Enable interrupts from GIC to PS
 //	Xil_ExceptionInit();	this function does nothing!
@@ -168,19 +166,12 @@ int initInterrupt(controllers *components) {
  * @note	None.
  ***************************************/
 void enableInterrupts(controllers *components) {
-//	XScuGic_Enable(components->IntcInstancePtr, TX_INTR_ID);
 	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
 	XScuGic_Enable(components->IntcInstancePtr, HSYNC_INTR_ID);
 	XScuGic_Enable(components->IntcInstancePtr, FIFO_EMPTY_INTR_ID);
 	XScuGic_Enable(components->IntcInstancePtr, FIFO_FULL_INTR_ID);
 }
 
-int dmaReadRun(controllers *components) {
-	//Setting DMA MM2S run/stop bit to 1
-	Xil_Out32((components->CfgPtr->BaseAddr + XAXIDMA_CR_OFFSET), 1);
-
-	return XST_SUCCESS;
-}
 int dmaReadReg(u32 *srcAddr, u32 length, controllers *components) {
 	//Setting DMA MM2S run/stop bit to 1
 	Xil_Out32((components->CfgPtr->BaseAddr + XAXIDMA_CR_OFFSET), XAXIDMA_CR_RUNSTOP_MASK);
@@ -221,16 +212,12 @@ void HSyncIntrHandler(void *Callback) {
 	//Disable the interrupt
 	XScuGic_Disable(components->IntcInstancePtr, HSYNC_INTR_ID);
 
-//	while(i<0) i++;
 	//Do some data transfer
-//	Xil_DCacheFlushRange((INTPTR) dataArray, 512*512*4);
 	dmaReadReg(dataArray[i], 640, components);
 	Xil_DCacheFlushRange((INTPTR) dataArray[(i+1)%480], 640*4);
 
-//	dmaReadReg(data_dma_to_vga+i, 512, components);
-	//Sending 512 lines, then starting over
+	//Sending 640 lines, then starting over
 	if(i<639)lineIndex++;
-//	i = (i<255) ? (i+1) : 0;
 
 	//End of data transfer, enable the interrupt
 	XScuGic_Enable(components->IntcInstancePtr, HSYNC_INTR_ID);
@@ -248,7 +235,7 @@ void VSyncIntrHandler(void *Callback) {
 
 	XScuGic_Disable(components->IntcInstancePtr, VSYNC_INTR_ID);
 
-	//Reset the line number identifier (its negative because I need to fix the interrupt in hardware
+	//Reset the line index (its negative because I need to fix the interrupt in hardware)
 	lineIndex=-35;
 
 	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
@@ -268,25 +255,13 @@ void FifoFullHandler(void *Callback) {
 	//
 	XScuGic_Enable(IntcInstancePtr, FIFO_FULL_INTR_ID);
 }
-/***************************************
- * DisableIntrSystem disables connected interrupts.
- *
- * @param	IntcInstancePtr is pointer to interrupt controller instance.
- *
- * @return	None.
- *
- * @note	None.
- ***************************************/
-void DisableIntrSystem(INTC *IntcInstancePtr) {
-	//XScuGic_Disconnect(IntcInstancePtr, HSYNC_INTR_ID);
-//	XScuGic_Disconnect(IntcInstancePtr, VSYNC_INTR_ID);
-}
+
 /***************************************
  * getChar reads from UART and returns keyboard input.
  *
- * @param	Callback is a pointer to the caller, in this case the interrupt controller.
+ * @param	UartPsPtr is a pointer to the XUartPs instance.
  *
- * @return	None.
+ * @return	The character typed in from the user.
  *
  * @note	None.
  ***************************************/
@@ -299,6 +274,15 @@ u8 getChar(XUartPs *UartPsPtr) {
 	return *(u8 *) (XPAR_PS7_RAM_1_S_AXI_HIGHADDR - 0xFFF);
 }
 
+/***************************************
+ * drawLines draws 256 lines on the screen using Bresenham's line algorithm.
+ *
+ * @param	t is an index for which line to draw.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void drawLines(u32 t) {
 
 	drawLine(startX[t], startY[t], endX[t], endY[t], colorPalette[t%16]);
@@ -312,19 +296,29 @@ void drawLines(u32 t) {
 	static int full = 0;
 	if(t == 255) full = 1;
 
+	u32 indexLast = (t == 255) ? 0 : (t + 1);
+
 	if(full) {
-//		if(t == 0) lineStart(1);
 		//Start deleting lines
-		u32 indexLast = (t == 255) ? 0 : (t + 1);
-//		u32 indexLast = (t < 255) ? (-(t-255))%256 : (t-255)%256;
+		
+
 		eraseLineB(startX[indexLast],
 				  startY[indexLast],
 				  endX[indexLast],
 				  endY[indexLast]);
 	}
-	calculateLine((t == 255) ? 0 : (t + 1));
+	calculateLine(indexLast);
 }
 
+/***************************************
+ * calculateLine calculates line coordinates according to speed of each point of the line.
+ *
+ * @param	t is an index for which line's coordinates to calculate.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void calculateLine(u32 t) {
 	//Coordinates for next line
 	u32 indexNext = (t == 0) ? 255 : (t-1)%256;
@@ -334,6 +328,18 @@ void calculateLine(u32 t) {
 	endY[t%256] = endY[indexNext] + dy1;
 }
 
+/***************************************
+ * drawLine draws lines using Bresenham's line algorithm.
+ *
+ * @param	x0 is the starting x coordinate of the line.
+ * @param	y0 is the starting y coordinate of the line.
+ * @param	x1 is the ending x coordinate of the line.
+ * @param	y1 is the ending y coordinate of the line.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void drawLine(int x0, int y0, int x1, int y1, int color) {
 
 	//Bresenham's line algorithm implementation
@@ -358,6 +364,18 @@ void drawLine(int x0, int y0, int x1, int y1, int color) {
 	}
 }
 
+/***************************************
+ * eraseLineB erases lines using Bresenham's line algorithm.
+ *
+ * @param	x0 is the starting coordinate of the line to erase.
+ * @param	y0 is the starting coordinate of the line to erase.
+ * @param	x1 is the ending coordinate of the line to erase.
+ * @param	y1 is the ending coordinate of the line to erase.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void eraseLineB(u32 x0, u32 y0, u32 x1, u32 y1) {
 	//Bresenham's line algorithm implementation
 	int dx =  abs (x1 - x0), sx = x0 < x1 ? 1 : -1;
@@ -380,36 +398,51 @@ void eraseLineB(u32 x0, u32 y0, u32 x1, u32 y1) {
 		}
 }
 
+/***************************************
+ * lineStart initializes the starting coordinates of the first line.
+ *
+ * @param	
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void lineStart(int state) {
-	if (state == 0)
-	{
-		startX[0] = rand()%SCREEN_WIDTH;
-		startY[0] = rand()%SCREEN_HEIGHT;
-		endX[0] = rand()%SCREEN_WIDTH;
-		endY[0] = rand()%SCREEN_HEIGHT;
-	}
+	//Random starting coordinates for the first line
+	startX[0] = rand()%SCREEN_WIDTH;
+	startY[0] = rand()%SCREEN_HEIGHT;
+	endX[0] = rand()%SCREEN_WIDTH;
+	endY[0] = rand()%SCREEN_HEIGHT;
 
-	dx0 = 4;
-	dx1 = 3;
-	dy0 = 5;
-	dy1 = 6;
-
-//	dx0 = rand()%6 + 1;
-//	dx1 = rand()%6 + 1;
-//	dy0 = rand()%6 + 1;
-//	dy1 = rand()%6 + 1;
+	//(Random) speed for the first line
+	dx0 = rand()%6 + 1;
+	dx1 = rand()%6 + 1;
+	dy0 = rand()%6 + 1;
+	dy1 = rand()%6 + 1;
 }
 
+/***************************************
+ * getLetter looks up the IBM VGA 8x16 font array for a specific character.
+ *
+ * @param	asciiNum is the ASCII number of the character.
+ *
+ * @return	Pointer to a character in the IBM VGA 8x16 font array.
+ *
+ * @note	None.
+ ***************************************/
 u8 *getLetter(u32 asciiNum) {
 	u8 *character;
 	u32 ascii = asciiNum * 16;
 	character = (IBM_VGA_8x16 + ascii);
-	if(asciiNum == 0xA || asciiNum == 0xD) {	//Line feed '\n' or return key
+
+	//Line feed return key or '\n'
+	if(asciiNum == 0xA || asciiNum == 0xD) {	
 		nextLine();
 		return getLetter(dataArray[vgaIndex/80*16][(vgaIndex*8)%640]);
 		vgaIndex--;
 
-	} else if(asciiNum == 0x9) {				//Horizontal tab key or '\r'
+	//Horizontal tab key or '\r'
+	} else if(asciiNum == 0x9) {
 		nextTab();
 		return getLetter(dataArray[vgaIndex/80*16][(vgaIndex*8)%640]);
 		vgaIndex--;
@@ -418,6 +451,15 @@ u8 *getLetter(u32 asciiNum) {
 	return character;
 }
 
+/***************************************
+ * eraseLetter erases a letter at the vgaIndex position.
+ *
+ * @param	None.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void eraseLetter(void) {
 	for(int i = 0; i < 16; i++) {
 		for(int j = 0; j < 8; j++) {
@@ -426,6 +468,16 @@ void eraseLetter(void) {
 		}
 }
 
+/***************************************
+ * printLetter prints a letter at the vgaIndex position.
+ *
+ * @param	character is a pointer to the character in the IBM VGA 8x16 font array.
+ * @param	color is the color of the character defined in main.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void printLetter(u8 *character, colors color) {
 	//Erase character at this index prior to printing it
 	eraseLetter();
@@ -448,6 +500,16 @@ void printLetter(u8 *character, colors color) {
 	else vgaIndex = 0;
 }
 
+/***************************************
+ * printVga prints to the VGA screen display.
+ *
+ * @param	string is the string to print.
+ * @param	color is the color of the string.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void printVGA(const char* string, colors color) {
 	u32 i = 0;		//Index for the string
 	while(string[i] != 0) {
@@ -456,15 +518,43 @@ void printVGA(const char* string, colors color) {
 	}
 }
 
+/***************************************
+ * nextLine increments the vgaIndex so it points one line ahead.
+ *
+ * @param	None.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void nextLine() {
 	vgaIndex = (vgaIndex/80)*80 + SCREEN_WIDTH/8-1;
 //	eraseLine();
 }
 
+/***************************************
+ * nextTab increments the vgaIndex so it points one tab (4 spaces) ahead.
+ *
+ * @param	None.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ ***************************************/
 void nextTab() {
 	vgaIndex += 3;
 }
 
+/***************************************
+ * power calculates a value of a base raised to a power.
+ *
+ * @param	base is the base of potentiation.
+ * @param	power is the power of potentiation.
+ *
+ * @return	Value of a base raised to a power.
+ *
+ * @note	None.
+ ***************************************/
 u32 power(u32 base, u32 power) {
 	if (power == 0) return 1;
 	u32 number = 1;

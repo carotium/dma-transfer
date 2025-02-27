@@ -119,7 +119,6 @@ void DisableIntrSystem(INTC *IntcInstancePtr);
 u8 getChar(XUartPs *UartPs);
 int dmaSend(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length, int Direction);
 
-int dmaReadRun(controllers *components);
 int dmaReadReg(u32 *srcAddr, u32 length, controllers *components);
 
 //Line drawing functions
