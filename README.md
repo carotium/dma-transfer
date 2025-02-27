@@ -10,10 +10,11 @@ Defined here are library functions:
 - - initUART(controllers *components),
 - - initInterrupt(controllers *components).
 ### [Libraries header](libs.h)
-Besides declaring functions, here are structs and variables that are used in the project:\
+Besides declaring functions, here are structs and variables that are relevant and used in the project:\
 ***Structs***:
 + controllers.
 
 ***Variables***:
 - **components**, controllers struct
 - **dataArray**, 2D array of *u32* RGB values
+- **i**
