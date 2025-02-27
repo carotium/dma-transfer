@@ -4,7 +4,9 @@
 controllers *components;
 
 u32 dataArray[480][640];
-static volatile s32 lineIndex = 0;	//line number to send
+//Line number index to send to VGA
+static volatile s32 lineIndex = 0;
+//Index of the character to print on the VGA screen
 static u32 vgaIndex = 0;
 
 /***************************************
@@ -21,18 +23,21 @@ static u32 vgaIndex = 0;
 int initPlatform(controllers *components) {
 	int Status;
 
+	//Initialize UART
 	Status = initUART(components);
 	if(Status != XST_SUCCESS) {
 		xil_printf("Initialization of UartPs failed :(\n\r");
 		return XST_FAILURE;
 	} else xil_printf("Initialization of UartPs done!\n\r");
 
+	//Initialize DMA
 	Status = initDMA(components);
 	if(Status != XST_SUCCESS) {
 		xil_printf("Initialization of DMA failed :(\n\r");
 		return XST_FAILURE;
 	} 	else xil_printf("Initialization of DMA done!\n\r");
 
+	//Initialize interrupts
 	Status = initInterrupt(components);
 	if(Status != XST_SUCCESS) {
 		xil_printf("Initialization of interrupts failed.\n\r");
