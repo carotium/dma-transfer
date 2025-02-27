@@ -128,7 +128,6 @@ void HSyncIntrHandler(void *Callback);				//ISR for HSYNC
 void FifoEmptyHandler(void *Callback);				//ISR for fifo empty threshold = 256
 void FifoFullHandler(void *Callback);				//ISR for fifo full threshold = 256
 
-void DisableIntrSystem(INTC *IntcInstancePtr);
 u8 getChar(XUartPs *UartPs);
 int dmaSend(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length, int Direction);
 
@@ -149,7 +148,7 @@ void printVGA(const char* string, colors color);
 void nextLine();
 void nextTab();
 
-//yep
+//Potentiation calculation
 u32 power(u32 base, u32 power);
 
 #endif		//End of protection macro
