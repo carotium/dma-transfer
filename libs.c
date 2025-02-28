@@ -231,11 +231,11 @@ void HSyncIntrHandler(void *Callback) {
 	XScuGic_Disable(components->IntcInstancePtr, HSYNC_INTR_ID);
 
 	//Do some data transfer
-	dmaReadReg(dataArray[i], 640, components);
-	Xil_DCacheFlushRange((INTPTR) dataArray[(i+1)%480], 640*4);
+	dmaReadReg(dataArray[lineIndex], 640, components);
+	Xil_DCacheFlushRange((INTPTR) dataArray[(lineIndex+1)%480], 640*4);
 
 	//Sending 640 lines, then starting over
-	if(i<639)lineIndex++;
+	if(lineIndex<639)lineIndex++;
 
 	//End of data transfer, enable the interrupt
 	XScuGic_Enable(components->IntcInstancePtr, HSYNC_INTR_ID);
