@@ -1,6 +1,6 @@
 /**************************************************************
  * File: libs.h
- * Description: DMA, VGA, GIC, UART configuration. Other 
+ * Description: DMA, GIC, UART configuration. Other 
  * miscellaneous functions.
  *
  * Author: Ahac Rafael Bela
@@ -39,7 +39,9 @@
 /**************************************************************
  * Macros section
  *************************************************************/
-//DMA interrupts
+ #define SCREEN_WIDTH  640
+ #define SCREEN_HEIGHT 480
+ //DMA interrupts
 #define XPAR_FABRIC_HSYNC_INTROUT_VEC_ID 63U
 #define XPAR_FABRIC_VSYNC_INTROUT_VEC_ID 64U
 
