@@ -37,6 +37,19 @@ u32 colorPalette[16] = {
 		0x7e451a
 };
 
+//Scaling variable of the font
+static u32 scale = 2;
+
+selectorWText selectorWText1;
+selectorWText selectorWText2;
+selectorWText selectorWText3;
+selectorWText selectorWText4;
+
+u32 discovered = 0;
+
+XTime timerS, timerE;
+double timeUsed;
+
 int main(void) {
 
 	//Assembling the controllers structure for easier access to the underlying drivers
@@ -48,36 +61,9 @@ int main(void) {
 	//Flushing cache, so the DMA transmits defined data
 	Xil_DCacheFlushRange((INTPTR) dataArray, 640*480*4);
 
-	static colors color;
-
-//	for(int i = 0; i < 256; i++) {
-//
-//		switch(i%15) {
-//		case 0:  color = blue; break;
-//		case 1:  color = green; break;
-//		case 2:  color = cyan; break;
-//		case 3:  color = red; break;
-//		case 4:  color = purple; break;
-//		case 5:  color = brown; break;
-//		case 6:  color = gray; break;
-//		case 7:  color = d_gray; break;
-//		case 8:  color = l_blue; break;
-//		case 9:  color = l_green; break;
-//		case 10: color = l_cyan; break;
-//		case 11: color = l_red; break;
-//		case 12: color = l_purple; break;
-//		case 13: color = yellow; break;
-//		case 14: color = white; break;
-//		default: break;
-//		}
-//		color = white;
-//
-//		printLetter(getLetter(i), color);
-//	}
-
-	xil_printf("Press a key to continue\n\r");
-	//Reads user input from the UART
-	getChar(components->UartPs);
+//	xil_printf("Press a key to continue\n\r");
+	//A stopping point to wait for user input
+//	getChar(components->UartPs);
 	xil_printf("\n\rHappy DMA-ing\n\r");
 
 	//Enable the interrupts
@@ -86,12 +72,101 @@ int main(void) {
 	//Setting starting line parameters
 	lineStart(0);
 
-	printVGA("\nWhat can you say, I'm a decent programmer\t", white);
+	drawText("MiniZed 1.0", (point){2, 2}, 4, white, d_gray);
 
+	point selector1 = {208, 200};
+	point selector2 = {208, 238};
+	point selector3 = {208, 276};
+	point selector4 = {208, 314};
+
+	const char *menuText1 = "Echo";
+	const char *menuText2 = "Lines";
+	const char *menuText3 = "Exit";
+	const char *menuText4 = "Extras";
+
+
+	point textPos1 = {288, 203};
+	point textPos2 = {280, 241};
+	point textPos3 = {288, 279};
+	point textPos4 = {272, 317};
+
+	selectorWText1 = (selectorWText){{selector1.x, selector1.y}, textPos1, menuText1};
+	selectorWText2 = (selectorWText){{selector2.x, selector2.y}, textPos2, menuText2};
+	selectorWText3 = (selectorWText){{selector3.x, selector3.y}, textPos3, menuText3};
+	selectorWText4 = (selectorWText){{selector4.x, selector4.y}, textPos4, menuText4};
+
+	drawStraight(0, 0, 0, 479, red);
+	drawStraight(0, 0, 639, 0, red);
+	drawStraight(0, 479, 639, 479, red);
+	drawStraight(639, 0, 639, 479, red);
+
+	//First box is selected on startup
+	static int selected = 1;
+	drawSelector(selector1, white);
+	drawSelector(selector2, d_gray);
+	drawSelector(selector3, d_gray);
+//	drawSelector(selector4, l_red);
+
+	drawText(selectorWText1.menuText, selectorWText1.menu, 2, white, black);
+	drawText(selectorWText2.menuText, selectorWText2.menu, 2, d_gray, black);
+	drawText(selectorWText3.menuText, selectorWText3.menu, 2, d_gray, black);
+//	drawText(selectorWText4.menuText, selectorWText4.menu, 2, l_red, black);
+
+//	drawLineB(64, 64, 575, 415, l_blue);
+
+//	XTime_GetTime(&tStart);
+//	printVGA("B", 1, cyan);
+//	XTime_GetTime(&tEnd);
+
+//	printf("printVGA took %llu clock cycles.\n", 2*(tEnd - tStart));
+//	printf("printVGA took %.2f us.\n",
+//			1.0 * (tEnd - tStart) / (COUNTS_PER_SECOND/1000000));
+
+	nextLine(1);
+	scale = 1;
 	while(1)
 	{
+		char caughtChar = getChar(components->UartPs);
+
+		if(caughtChar == 'w') {
+			//Up arrow
+			if(selected > 1) {
+				selected--;
+				discovered = 0;
+			}
+		}
+		else if(caughtChar == 's') {
+			//Down arrow
+			if(selected < 3) {
+				selected++;
+			}
+		} else if(caughtChar == 'S' && selected == 3) {
+			selected++;
+			discovered = 1;
+		}
+
+		selectorWText menuText;
+		switch(selected) {
+		case 1:
+			menuText = selectorWText1;
+			break;
+		case 2:
+			menuText = selectorWText2;
+			break;
+		case 3:
+			menuText = selectorWText3;
+			break;
+		case 4:
+			menuText = selectorWText4;
+		}
+
+		selectMenu(menuText);
+
+		if(caughtChar == 0xD) {
+			enterMenu(menuText);
+		}
 		//Print to VGA from UART input
-		printLetter(getLetter(getChar(components->UartPs)), white);
+//		printLetter(getLetter(getChar(components->UartPs), scale), scale, white);
 
 /************************************
 *******	Line drawing algorithm ******

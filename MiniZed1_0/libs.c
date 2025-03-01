@@ -231,11 +231,11 @@ void HSyncIntrHandler(void *Callback) {
 	XScuGic_Disable(components->IntcInstancePtr, HSYNC_INTR_ID);
 
 	//Do some data transfer
-	dmaReadReg(dataArray[lineIndex], 640, components);
+	dmaReadReg(dataArray[lineIndex] + 1, 640, components);
 	Xil_DCacheFlushRange((INTPTR) dataArray[(lineIndex+1)%480], 640*4);
 
-	//Sending 640 lines, then starting over
-	if(lineIndex<639)lineIndex++;
+	//Sending 480 lines, then starting over
+	if(lineIndex<479)lineIndex++;
 
 	//End of data transfer, enable the interrupt
 	XScuGic_Enable(components->IntcInstancePtr, HSYNC_INTR_ID);
@@ -254,7 +254,7 @@ void VSyncIntrHandler(void *Callback) {
 	XScuGic_Disable(components->IntcInstancePtr, VSYNC_INTR_ID);
 
 	//Reset the line index (its negative because I need to fix the interrupt in hardware)
-	lineIndex=-35;
+	lineIndex = -28;
 
 	XScuGic_Enable(components->IntcInstancePtr, VSYNC_INTR_ID);
 }
@@ -305,7 +305,7 @@ u8 getChar(XUartPs *UartPsPtr) {
  ***************************************/
 void drawLines(u32 t) {
 
-	drawLine(startX[t], startY[t], endX[t], endY[t], colorPalette[t%16]);
+	drawLineB(startX[t], startY[t], endX[t], endY[t], colorPalette[t%16]);
 
 	//Check for screen borders and reverse direction
 	if(startX[t] < abs(dx0) || startX[t] >= (SCREEN_WIDTH-abs(dx0))) dx0 = -dx0;
@@ -320,7 +320,7 @@ void drawLines(u32 t) {
 
 	if(full) {
 		//Start deleting lines
-		
+
 
 		eraseLineB(startX[indexLast],
 				  startY[indexLast],
@@ -355,12 +355,13 @@ void calculateLine(u32 t) {
  * @param	y0 is the starting y coordinate of the line.
  * @param	x1 is the ending x coordinate of the line.
  * @param	y1 is the ending y coordinate of the line.
+ * @param	color is color of the line.
  *
  * @return	None.
  *
  * @note	None.
  ***************************************/
-void drawLine(int x0, int y0, int x1, int y1, int color) {
+void drawLineB(u32 x0, u32 y0, u32 x1, u32 y1, u32 color) {
 
 	//Bresenham's line algorithm implementation
 	int dx =  abs (x1 - x0), sx = x0 < x1 ? 1 : -1;
@@ -368,7 +369,7 @@ void drawLine(int x0, int y0, int x1, int y1, int color) {
   	int err = dx - dy, e2; // error value e_xy
  
   	for (;;){  // loop
-    	*(*(dataArray + y0)+x0) = color;
+    	putPixel(x0, y0, color);
     	if(x0 == x1 && y0 == y1) break;
 		e2 = 2 * err;
 		if (e2 >= -dy) {
@@ -382,6 +383,158 @@ void drawLine(int x0, int y0, int x1, int y1, int color) {
 			y0 += sy;
 		} // e_xy+e_y < 0
 	}
+}
+
+void drawStraight(int x0, int y0, int x1, int y1, u32 color) {
+	int dx = 0, dy = 0;
+	//Horizontal or vertical and which direction
+	if(x1 == x0) {
+		//Vertical line
+		if(y1 > y0) {
+			//Vertical line moving down
+			dy = 1;
+		} else {
+			//Vertical line moving up
+			dy = -1;
+		}
+	} else if(x1 > x0) {
+		//Horizontal line moving right
+		dx = 1;
+	} else {
+		//Horizontal line moving left
+		dx = -1;
+	}
+	if(dx != 0) {
+		//Horizontal line
+		while(1) {
+			putPixel(x0, y0, color);
+			x0 += dx;
+			if(x0 == x1) {
+				putPixel(x0, y0, color);
+				break;
+			}
+		}
+	} else {
+		while(1) {
+			putPixel(x0, y0, color);
+			y0 += dy;
+			if(y0 == y1) {
+				putPixel(x0, y0, color);
+				break;
+			}
+		}
+	}
+}
+
+void drawBox(int x0, int y0, int x1, int y1, colors color) {
+	drawStraight(x0, y0, x0 + (x1 - x0), y0, color);	//top line
+	drawStraight(x0, y0, x0, y0 + (y1 - y0), color);	//left line
+	drawStraight(x1, y0, x1, y0 + (y1 - y0), color);	//right line
+	drawStraight(x0, y1, x0 + (x1 - x0), y0, color);	//bottom line
+}
+
+void drawSelector(point tL, colors color) {
+	int offset = 16;
+	int height = 32;
+	int width = 224;
+
+	point tR;
+	tR.x = tL.x + width;
+	tR.y = tL.y;
+
+	point bL;
+	bL.x = tL.x;
+	bL.y = tL.y + height;
+
+	point bR;
+	bR.x = tL.x + width;
+	bR.y = tL.y + height;
+
+	drawStraight(tL.x, tL.y, tL.x + offset, tL.y, color);	//top line_left
+	drawStraight(tR.x - offset, tR.y, tR.x, tR.y, color);	//top line_right
+
+	drawStraight(tL.x, tL.y, tL.x, tL.y + offset, color);	//left line_top
+	drawStraight(bL.x, bL.y - offset, bL.x, bL.y, color);	//left line_bottom
+
+	drawStraight(tR.x, tR.y, tR.x, tR.y + offset, color);	//right line_top
+	drawStraight(bR.x, bR.y - offset, bR.x, bR.y, color);	//right line_bottom
+
+	drawStraight(bL.x, bL.y, bL.x + offset, bL.y, color);	//bottom line_left
+	drawStraight(bR.x - offset, bR.y, bR.x, bL.y, color);	//bottom line_right
+}
+
+void drawSelectorWText(selectorWText selectorWText) {
+
+}
+
+void selectSelector(point selector) {
+	drawSelector(selector, white);
+}
+
+void unselectSelector(point selector) {
+	drawSelector(selector, d_gray);
+}
+
+void unselectAll() {
+	unselectSelector(selectorWText1.selector);
+	unselectSelector(selectorWText2.selector);
+	unselectSelector(selectorWText3.selector);
+	if(discovered) {
+		drawSelector(selectorWText4.selector, l_red);
+	} else drawSelector(selectorWText4.selector, black);
+
+	drawText(selectorWText1.menuText, selectorWText1.menu, 2, d_gray, black);
+	drawText(selectorWText2.menuText, selectorWText2.menu, 2, d_gray, black);
+	drawText(selectorWText3.menuText, selectorWText3.menu, 2, d_gray, black);
+	if(discovered) {
+		drawText(selectorWText4.menuText, selectorWText4.menu, 2, l_red, black);
+	} else drawText(selectorWText4.menuText, selectorWText4.menu, 2, black, black);
+}
+
+void selectSelectorWText(selectorWText selectorWText) {
+	unselectAll();
+
+	if(selectorWText.menu.y != selectorWText4.menu.y) {
+		selectSelector(selectorWText.selector);
+	} else drawSelector(selectorWText.selector, red);
+}
+
+void selectMenu(selectorWText menuText) {
+	unselectAll();
+
+	selectSelector(menuText.selector);
+	if(menuText.menu.y != selectorWText4.menu.y) {
+		drawText(menuText.menuText, menuText.menu, 2, white, black);
+	} else {
+		drawSelector(menuText.selector, red);
+		drawText(menuText.menuText, menuText.menu, 2, red, black);
+	}
+}
+
+void enterMenu(selectorWText selectorWText) {
+	clearVGA();
+	drawText("MiniZed 1.0", (point) {0, 0}, 1, white, d_gray);
+	if(selectorWText.selector.y == selectorWText1.selector.y) {
+		enterEcho();
+	}
+}
+
+void enterEcho() {
+	char caughtChar;
+	do {
+		static point index = {0, 16};
+		caughtChar = getChar(components->UartPs);
+		char caughtWord[] = {caughtChar, '\0'};
+		drawText(caughtWord, index, 1, white, black);
+		if(index.x < (SCREEN_WIDTH - CHAR_WIDTH))index.x += CHAR_WIDTH;
+		else if(index.y < (SCREEN_HEIGHT - 16)) {
+			index.y += 16;
+			index.x = 0;
+		} else {
+			index = (point) {0, 16};
+		}
+	} while (caughtChar != 0x1B);
+	clearVGA();
 }
 
 /***************************************
@@ -421,7 +574,7 @@ void eraseLineB(u32 x0, u32 y0, u32 x1, u32 y1) {
 /***************************************
  * lineStart initializes the starting coordinates of the first line.
  *
- * @param	
+ * @param
  *
  * @return	None.
  *
@@ -450,22 +603,24 @@ void lineStart(int state) {
  *
  * @note	None.
  ***************************************/
-u8 *getLetter(u32 asciiNum) {
+u8 *getLetter(u32 asciiNum, u32 scale) {
 	u8 *character;
 	u32 ascii = asciiNum * 16;
 	character = (IBM_VGA_8x16 + ascii);
 
 	//Line feed return key or '\n'
-	if(asciiNum == 0xA || asciiNum == 0xD) {	
-		nextLine();
-		return getLetter(dataArray[vgaIndex/80*16][(vgaIndex*8)%640]);
-		vgaIndex--;
+	if(asciiNum == 0xA || asciiNum == 0xD) {
+		nextLine(scale);
+		//Return a pointer to the space character
+		return (IBM_VGA_8x16 + 16*32);
+//		vgaIndex--;
 
 	//Horizontal tab key or '\r'
 	} else if(asciiNum == 0x9) {
-		nextTab();
-		return getLetter(dataArray[vgaIndex/80*16][(vgaIndex*8)%640]);
-		vgaIndex--;
+		nextTab(scale);
+		//Return a pointer to the space character
+		return (IBM_VGA_8x16 + 16*32);
+//		vgaIndex--;
 	}
 
 	return character;
@@ -480,10 +635,10 @@ u8 *getLetter(u32 asciiNum) {
  *
  * @note	None.
  ***************************************/
-void eraseLetter(void) {
+void eraseLetter(u32 scale) {
 	for(int i = 0; i < 16; i++) {
 		for(int j = 0; j < 8; j++) {
-			dataArray[i+vgaIndex/80*16][j+(vgaIndex*8)%640] = 0;
+			dataArray[i+vgaIndex/80*16*scale][j+(vgaIndex*8)%640] = 0;
 			}
 		}
 }
@@ -498,25 +653,29 @@ void eraseLetter(void) {
  *
  * @note	None.
  ***************************************/
-void printLetter(u8 *character, colors color) {
+void printLetter(u8 *character, u32 scale, colors color) {
 	//Erase character at this index prior to printing it
-	eraseLetter();
+	eraseLetter(scale);
 
-	for(int i = 0; i < 16; i++) {
+	for(int y = 0; y < (16 * scale); y++) {
 
-		u8 row = *(character + i);
+		u8 row = *(character + (y / scale));
 
-		for(int j = 0; j < 8; j++) {
+		for(int x = 0; x < (8 * scale); x++) {
 			//extract single pixel
-			u32 selector = power(2, (7-j));
+			u32 selector = power(2, (7-(x / scale)));
 			u32 pixel = row & selector;
 			u8 pixelValue = (pixel != 0) ? 1 : 0;
 
-//			dataArray[i+y*16][j+x*8] = pixelValue * color;
-			dataArray[i+vgaIndex/80*16][j+(vgaIndex*8)%640] = pixelValue * color;
+//			if(scale.scaleX < 1 || scale.scaleY > 1) {
+//				for(int i = 0; i < (scale.scaleX - 1); i++) {
+//				}
+//			}
+
+			dataArray[y+(vgaIndex/80)*16*scale][(x+vgaIndex*8)%640] = pixelValue * color;
 		}
 	}
-	if(vgaIndex < 2399) vgaIndex++;	//640/8=80, 480/16=30; 80*30=2400
+	if(vgaIndex < (2400/scale)) vgaIndex += scale;	//640/8=80, 480/16=30; 80*30=2400
 	else vgaIndex = 0;
 }
 
@@ -530,12 +689,57 @@ void printLetter(u8 *character, colors color) {
  *
  * @note	None.
  ***************************************/
-void printVGA(const char* string, colors color) {
+void printVGA(const char* string, u32 scale, colors color) {
 	u32 i = 0;		//Index for the string
 	while(string[i] != 0) {
-		printLetter(getLetter(string[i]), color);
+		printLetter(getLetter(string[i], scale), scale, color);
+
 		i++;
 	}
+}
+
+void putPixel(u32 x, u32 y, colors color) {
+	u8 *screen = (u8 *) *dataArray;
+	u32 where = x * PIXEL_WIDTH + y * PITCH;
+
+	screen[where] = color;				//RED
+	screen[where + 1] = color >> 8;		//GREEN
+	screen[where + 2] = color >> 16;	//BLUE
+}
+
+void drawChar(u8 c, u32 x, u32 y, u32 scale, colors fgcolor, colors bgcolor) {
+	u32 i, j;
+	u32 mask[8] = {128, 64, 32, 16, 8, 4, 2, 1};
+	u8 *letter = IBM_VGA_8x16 + (u32) c * 16;
+
+	for(i = 0 ; i < (16 * scale); i++){
+		for(j = 0; j < (8 * scale); j++){
+			putPixel( (x + j), (y + i), (letter[i / scale] & mask[j / scale]) ? fgcolor : bgcolor);
+		}
+	}
+}
+
+void drawText(const char *text, point textP, u32 scale, colors fgcolor, colors bgcolor) {
+	for(u32 i = 0; text[i]; i++) {
+		drawChar(text[i], textP.x + i * CHAR_WIDTH * scale, textP.y, scale, fgcolor, bgcolor);
+	}
+}
+
+void clearVGA() {
+	for(u32 y = 0; y < 480; y++) {
+		for(u32 x = 0; x < 640; x++) {
+			putPixel(x, y, black);
+		}
+	}
+}
+
+void drawNextText(const char *text, u32 scale, colors fgcolor, colors bgcolor) {
+	u32 letterIndex = getNextIndex();
+}
+
+u32 getNextIndex() {
+	u32 index = 0;
+	return index;
 }
 
 /***************************************
@@ -547,8 +751,10 @@ void printVGA(const char* string, colors color) {
  *
  * @note	None.
  ***************************************/
-void nextLine() {
-	vgaIndex = (vgaIndex/80)*80 + SCREEN_WIDTH/8-1;
+void nextLine(u32 scale) {
+	if(vgaIndex < (2399 - SCREEN_WIDTH/8*scale)) {
+		vgaIndex = (vgaIndex/(80))*80 + SCREEN_WIDTH/8 - scale;
+	} else vgaIndex = 0;
 //	eraseLine();
 }
 
@@ -561,15 +767,15 @@ void nextLine() {
  *
  * @note	None.
  ***************************************/
-void nextTab() {
-	vgaIndex += 3;
+void nextTab(u32 scale) {
+	vgaIndex += 3*scale;
 }
 
 /***************************************
  * power calculates a value of a base raised to a power.
  *
- * @param	base is the base of potentiation.
- * @param	power is the power of potentiation.
+ * @param	base is the base of exponentiation.
+ * @param	power is the power of exponentiation.
  *
  * @return	Value of a base raised to a power.
  *
