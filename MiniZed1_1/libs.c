@@ -181,8 +181,8 @@ static volatile s32 lineIndex = 0;
  *
  * @note	None.
  *************************************************************/
- void enableInterrupts(controllers *ctrls) {
-	XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
+void enableInterrupts(controllers *ctrls) {
+    XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
 	XScuGic_Enable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
 	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_EMPTY_INTR_ID);
 	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_FULL_INTR_ID);
@@ -197,7 +197,7 @@ static volatile s32 lineIndex = 0;
  *
  * @note	None.
  *************************************************************/
- u8 getChar(XUartPs *UartPsPtr) {
+u8 getChar(XUartPs *UartPsPtr) {
 	u32 receive = 0;
 	do {
 		receive = XUartPs_Recv(UartPsPtr,(u8 *) (XPAR_PS7_RAM_1_S_AXI_HIGHADDR - 0xFFF), 1);
@@ -219,7 +219,7 @@ static volatile s32 lineIndex = 0;
  *
  * @note	None.
  *************************************************************/
- int dmaReadReg(u32 *srcAddr, u32 length, controllers *ctrls) {
+int dmaReadReg(u32 *srcAddr, u32 length, controllers *ctrls) {
 	//Setting DMA MM2S run/stop bit to 1
 	Xil_Out32((ctrls->CfgPtr->BaseAddr + XAXIDMA_CR_OFFSET), XAXIDMA_CR_RUNSTOP_MASK);
 	//Write a valid source address to the MM2S_SA register
