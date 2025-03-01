@@ -86,6 +86,7 @@ extern u32 discovered;
  void selectSelector(point selector);
  void unselectSelector(point selector);
  void selectSelectorWText(selectorWText selectorWText);
+ void selectMenu(selectorWText menuText);
  
  #endif /* VGA_H */
 

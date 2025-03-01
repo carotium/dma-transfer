@@ -17,11 +17,91 @@
  *************************************************************/
  u32 vgaArray[SCREEN_HEIGHT][SCREEN_WIDTH];
 
+/**************************************************************
+ * Function definitions
+ *************************************************************/
 
-void clearVGA();
-void putPixel(u32 x, u32 y, colors color);
-void drawChar(u8 c, u32 x, u32 y, u32 scale, colors fgcolor, colors bgcolor);
-void drawText(const char* text, point textP, u32 scale, colors fgcolor, colors bgcolor);
+/**************************************************************
+ * clearVGA clears the VGA screen.
+ *
+ * @param	None.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ *************************************************************/
+ void clearVGA() {
+	for(u32 y = 0; y < 480; y++) {
+		for(u32 x = 0; x < 640; x++) {
+			putPixel(x, y, black);
+		}
+	}
+}
+
+/**************************************************************
+ * putPixel draws a pixel.
+ *
+ * @param	x is the x coordinate of the point.
+ * @param	y is the y coordinate of the point.
+ * @param	color is the color of the point.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ *************************************************************/
+void putPixel(u32 x, u32 y, colors color) {
+	u8 *screen = (u8 *) *dataArray;
+	u32 where = x * PIXEL_WIDTH + y * PITCH;
+
+	screen[where] = color;				//RED
+	screen[where + 1] = color >> 8;		//GREEN
+	screen[where + 2] = color >> 16;	//BLUE
+}
+
+/**************************************************************
+ * drawChar draws a character.
+ *
+ * @param	c is the character to be drawn.
+ * @param	x is the x coordinate of the character.
+ * @param	y is the y coordinate of the character.
+ * @param	scale is the scale of the character.
+ * @param	fgcolor is the color of the character.
+ * @param	bgcolor is the background color of the character.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ *************************************************************/
+void drawChar(u8 c, u32 x, u32 y, u32 scale, colors fgcolor, colors bgcolor) {
+	u32 i, j;
+	u32 mask[8] = {128, 64, 32, 16, 8, 4, 2, 1};
+	u8 *letter = IBM_VGA_8x16 + (u32) c * 16;
+
+	for(i = 0 ; i < (16 * scale); i++){
+		for(j = 0; j < (8 * scale); j++){
+			putPixel( (x + j), (y + i), (letter[i / scale] & mask[j / scale]) ? fgcolor : bgcolor);
+		}
+	}
+}
+
+/**************************************************************
+ * drawText draws a text.
+ *
+ * @param	text is the text to be drawn.
+ * @param	textP is the starting point of the text.
+ * @param	scale is the scale of the text.
+ * @param	fgcolor is the color of the text.
+ * @param	bgcolor is the background color of the text.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ *************************************************************/
+void drawText(const char *text, point textP, u32 scale, colors fgcolor, colors bgcolor) {
+	for(u32 i = 0; text[i]; i++) {
+		drawChar(text[i], textP.x + i * CHAR_WIDTH * scale, textP.y, scale, fgcolor, bgcolor);
+	}
+}
 
 /**************************************************************
  * drawStraight draws a straight line.
@@ -203,4 +283,25 @@ void selectSelectorWText(selectorWText selectorWText) {
 	if(selectorWText.menu.y != selectorWText4.menu.y) {
 		selectSelector(selectorWText.selector);
 	} else drawSelector(selectorWText.selector, red);
+}
+
+/**************************************************************
+ * selectMenu selects a menu.
+ *
+ * @param	menuText is the menu with text.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ *************************************************************/
+void selectMenu(selectorWText menuText) {
+	unselectAll();
+
+	selectSelector(menuText.selector);
+	if(menuText.menu.y != selectorWText4.menu.y) {
+		drawText(menuText.menuText, menuText.menu, 2, white, black);
+	} else {
+		drawSelector(menuText.selector, red);
+		drawText(menuText.menuText, menuText.menu, 2, red, black);
+	}
 }
