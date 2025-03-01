@@ -1,36 +1,36 @@
 /**************************************************************
- * File: vga.c
- * Description: VGA driver for MiniZed board.
- *
- * Author: Ahac Rafael Bela
- * Created on: 01.03.2025
- * Last modified: 01.03.2025
- *************************************************************/
+* File: vga.c
+* Description: VGA driver for MiniZed board.
+*
+* Author: Ahac Rafael Bela
+* Created on: 01.03.2025
+* Last modified: 01.03.2025
+*************************************************************/
 
- /**************************************************************
- * Include section
- *************************************************************/
+/**************************************************************
+* Include section
+*************************************************************/
 #include "vga.h"
 
 /**************************************************************
- * Variable definitions
- *************************************************************/
- u32 vgaArray[SCREEN_HEIGHT][SCREEN_WIDTH];
+* Variable definitions
+*************************************************************/
+u32 vgaArray[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 /**************************************************************
- * Function definitions
- *************************************************************/
+* Function definitions
+*************************************************************/
 
 /**************************************************************
- * clearVGA clears the VGA screen.
- *
- * @param	None.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
- void clearVGA() {
+* clearVGA clears the VGA screen.
+*
+* @param	None.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
+void clearVGA() {
 	for(u32 y = 0; y < 480; y++) {
 		for(u32 x = 0; x < 640; x++) {
 			putPixel(x, y, black);
@@ -39,16 +39,16 @@
 }
 
 /**************************************************************
- * putPixel draws a pixel.
- *
- * @param	x is the x coordinate of the point.
- * @param	y is the y coordinate of the point.
- * @param	color is the color of the point.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* putPixel draws a pixel.
+*
+* @param	x is the x coordinate of the point.
+* @param	y is the y coordinate of the point.
+* @param	color is the color of the point.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void putPixel(u32 x, u32 y, colors color) {
 	u8 *screen = (u8 *) *dataArray;
 	u32 where = x * PIXEL_WIDTH + y * PITCH;
@@ -59,19 +59,19 @@ void putPixel(u32 x, u32 y, colors color) {
 }
 
 /**************************************************************
- * drawChar draws a character.
- *
- * @param	c is the character to be drawn.
- * @param	x is the x coordinate of the character.
- * @param	y is the y coordinate of the character.
- * @param	scale is the scale of the character.
- * @param	fgcolor is the color of the character.
- * @param	bgcolor is the background color of the character.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* drawChar draws a character.
+*
+* @param	c is the character to be drawn.
+* @param	x is the x coordinate of the character.
+* @param	y is the y coordinate of the character.
+* @param	scale is the scale of the character.
+* @param	fgcolor is the color of the character.
+* @param	bgcolor is the background color of the character.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void drawChar(u8 c, u32 x, u32 y, u32 scale, colors fgcolor, colors bgcolor) {
 	u32 i, j;
 	u32 mask[8] = {128, 64, 32, 16, 8, 4, 2, 1};
@@ -85,18 +85,18 @@ void drawChar(u8 c, u32 x, u32 y, u32 scale, colors fgcolor, colors bgcolor) {
 }
 
 /**************************************************************
- * drawText draws a text.
- *
- * @param	text is the text to be drawn.
- * @param	textP is the starting point of the text.
- * @param	scale is the scale of the text.
- * @param	fgcolor is the color of the text.
- * @param	bgcolor is the background color of the text.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* drawText draws a text.
+*
+* @param	text is the text to be drawn.
+* @param	textP is the starting point of the text.
+* @param	scale is the scale of the text.
+* @param	fgcolor is the color of the text.
+* @param	bgcolor is the background color of the text.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void drawText(const char *text, point textP, u32 scale, colors fgcolor, colors bgcolor) {
 	for(u32 i = 0; text[i]; i++) {
 		drawChar(text[i], textP.x + i * CHAR_WIDTH * scale, textP.y, scale, fgcolor, bgcolor);
@@ -104,18 +104,18 @@ void drawText(const char *text, point textP, u32 scale, colors fgcolor, colors b
 }
 
 /**************************************************************
- * drawStraight draws a straight line.
- *
- * @param	x0 is starting x coordinate of the line.
- * @param	y0 is starting y coordinate of the line.
- * @param	x1 is ending x coordinate of the line.
- * @param	y1 is ending y coordinate of the line.
- * @param	color is the color of the line.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* drawStraight draws a straight line.
+*
+* @param	x0 is starting x coordinate of the line.
+* @param	y0 is starting y coordinate of the line.
+* @param	x1 is ending x coordinate of the line.
+* @param	y1 is ending y coordinate of the line.
+* @param	color is the color of the line.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void drawStraight(int x0, int y0, int x1, int y1, u32 color) {
 	int dx = 0, dy = 0;
 	//Horizontal or vertical and which direction
@@ -158,18 +158,18 @@ void drawStraight(int x0, int y0, int x1, int y1, u32 color) {
 }
 
 /**************************************************************
- * drawBox draws a box.
- *
- * @param	x0 is x coordinate of the top left corner of the box.
- * @param	y0 is y coordinate of the top left corner of the box.
- * @param	x1 is x coordinate of the bottom right corner of the box.
- * @param	y1 is y coordinate of the bottom right corner of the box.
- * @param	color is the color of the box.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* drawBox draws a box.
+*
+* @param	x0 is x coordinate of the top left corner of the box.
+* @param	y0 is y coordinate of the top left corner of the box.
+* @param	x1 is x coordinate of the bottom right corner of the box.
+* @param	y1 is y coordinate of the bottom right corner of the box.
+* @param	color is the color of the box.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void drawBox(int x0, int y0, int x1, int y1, colors color) {
 	drawStraight(x0, y0, x0 + (x1 - x0), y0, color);	//top line
 	drawStraight(x0, y0, x0, y0 + (y1 - y0), color);	//left line
@@ -178,15 +178,15 @@ void drawBox(int x0, int y0, int x1, int y1, colors color) {
 }
 
 /**************************************************************
- * drawSelector draws a selector box.
- *
- * @param	tL is the top left corner of the selector box.
- * @param	color is the color of the selector box.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* drawSelector draws a selector box.
+*
+* @param	tL is the top left corner of the selector box.
+* @param	color is the color of the selector box.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void drawSelector(point tL, colors color) {
 	int offset = 16;
 	int height = 32;
@@ -218,40 +218,40 @@ void drawSelector(point tL, colors color) {
 }
 
 /**************************************************************
- * selectSelector selects a selector box.
- *
- * @param	selector is the top left corner of the selector box.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* selectSelector selects a selector box.
+*
+* @param	selector is the top left corner of the selector box.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void selectSelector(point selector) {
 	drawSelector(selector, white);
 }
 
 /**************************************************************
- * unselectSelector unselects a selector box.
- *
- * @param	selector is the top left corner of the selector box.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* unselectSelector unselects a selector box.
+*
+* @param	selector is the top left corner of the selector box.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void unselectSelector(point selector) {
 	drawSelector(selector, d_gray);
 }
 
 /**************************************************************
- * unselectAll unselects all selector boxes.
- *
- * @param	None.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* unselectAll unselects all selector boxes.
+*
+* @param	None.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void unselectAll() {
 	unselectSelector(selectorWText1.selector);
 	unselectSelector(selectorWText2.selector);
@@ -269,14 +269,14 @@ void unselectAll() {
 }
 
 /**************************************************************
- * selectSelectorWText selects a selector box with text.
- *
- * @param	selectorWText is the selector box with text.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* selectSelectorWText selects a selector box with text.
+*
+* @param	selectorWText is the selector box with text.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void selectSelectorWText(selectorWText selectorWText) {
 	unselectAll();
 
@@ -286,14 +286,14 @@ void selectSelectorWText(selectorWText selectorWText) {
 }
 
 /**************************************************************
- * selectMenu selects a menu.
- *
- * @param	menuText is the menu with text.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
+* selectMenu selects a menu.
+*
+* @param	menuText is the menu with text.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
 void selectMenu(selectorWText menuText) {
 	unselectAll();
 

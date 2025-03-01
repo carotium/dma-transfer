@@ -1,41 +1,41 @@
 /**************************************************************
- * File: libs.c
- * Description: MiniZed board DMA, GIC, UART configuration.
- * Other miscellaneous functions.
- *
- * Author: Ahac Rafael Bela
- * Created on: 01.03.2025
- * Last modified: 01.03.2025
- *************************************************************/
+* File: libs.c
+* Description: MiniZed board DMA, GIC, UART configuration.
+* Other miscellaneous functions.
+*
+* Author: Ahac Rafael Bela
+* Created on: 01.03.2025
+* Last modified: 01.03.2025
+*************************************************************/
 
 /**************************************************************
- * Include section
- *************************************************************/
+* Include section
+*************************************************************/
 #include "libs.h"
 
 /**************************************************************
- * Variable definitions
- *************************************************************/
+* Variable definitions
+*************************************************************/
 controllers *ctrls;
 
 static volatile s32 lineIndex = 0;
 
 /**************************************************************
- * Function definitions
- *************************************************************/
+* Function definitions
+*************************************************************/
 
 /**************************************************************
- * initPlatform initializes the platform. It initializes UART, DMA and interrupts.
- *
- * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
- *
- * @return
- * 		- XST_SUCCESS if successful,
- * 		- XST_FAILURE otherwise.
- *
- * @note	None.
- *************************************************************/
- int initPlatform(controllers *ctrls) {
+* initPlatform initializes the platform. It initializes UART, DMA and interrupts.
+*
+* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+*
+* @return
+* 		- XST_SUCCESS if successful,
+* 		- XST_FAILURE otherwise.
+*
+* @note	None.
+*************************************************************/
+int initPlatform(controllers *ctrls) {
 	int Status;
 
 	//Initialize UART
@@ -63,17 +63,17 @@ static volatile s32 lineIndex = 0;
 }
 
 /**************************************************************
- * initUart initializes the UART.
- *
- * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
- *
- * @return
- * 		- XST_SUCCESS if successful,
- * 		- XST_FAILURE otherwise.
- *
- * @note	None.
- *************************************************************/
- int initUART(controllers *ctrls) {
+* initUart initializes the UART.
+*
+* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+*
+* @return
+* 		- XST_SUCCESS if successful,
+* 		- XST_FAILURE otherwise.
+*
+* @note	None.
+*************************************************************/
+int initUART(controllers *ctrls) {
 	int Status;
 
 	xil_printf("\r\nInitializing Uart...\r\n");
@@ -92,17 +92,17 @@ static volatile s32 lineIndex = 0;
 }
 
 /**************************************************************
- * initDMA initializes the DMA.
- *
- * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
- *
- * @return
- * 		- XST_SUCCESS if successful,
- * 		- XST_FAILURE otherwise.
- *
- * @note	None.
- *************************************************************/
- int initDMA(controllers *ctrls) {
+* initDMA initializes the DMA.
+*
+* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+*
+* @return
+* 		- XST_SUCCESS if successful,
+* 		- XST_FAILURE otherwise.
+*
+* @note	None.
+*************************************************************/
+int initDMA(controllers *ctrls) {
 	int Status;
 
 	xil_printf("\r\nInitializing DMA...\r\n");
@@ -121,17 +121,17 @@ static volatile s32 lineIndex = 0;
 }
 
 /**************************************************************
- * initInterrupt initializes MM2S and HSync interrupts. (for now)
- *
- * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
- *
- * @return
- * 		- XST_SUCCESS if successful,
- * 		- XST_FAILURE otherwise.
- *
- * @note	None.
- *************************************************************/
- int initInterrupt(controllers *ctrls) {
+* initInterrupt initializes MM2S and HSync interrupts. (for now)
+*
+* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+*
+* @return
+* 		- XST_SUCCESS if successful,
+* 		- XST_FAILURE otherwise.
+*
+* @note	None.
+*************************************************************/
+int initInterrupt(controllers *ctrls) {
 	int Status;
 
 	xil_printf("\r\nInitializing interrupts...\r\n");
@@ -172,15 +172,15 @@ static volatile s32 lineIndex = 0;
 }
 
 /**************************************************************
- * enableInterrupts enables interrupts
- *
- * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
- *
- * @return
- * 			None.
- *
- * @note	None.
- *************************************************************/
+* enableInterrupts enables interrupts
+*
+* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+*
+* @return
+* 			None.
+*
+* @note	None.
+*************************************************************/
 void enableInterrupts(controllers *ctrls) {
     XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
 	XScuGic_Enable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
@@ -189,14 +189,14 @@ void enableInterrupts(controllers *ctrls) {
 }
 
 /**************************************************************
- * getChar reads from UART and returns keyboard input.
- *
- * @param	UartPsPtr is a pointer to the XUartPs instance.
- *
- * @return	The character typed to the UART.
- *
- * @note	None.
- *************************************************************/
+* getChar reads from UART and returns keyboard input.
+*
+* @param	UartPsPtr is a pointer to the XUartPs instance.
+*
+* @return	The character typed to the UART.
+*
+* @note	None.
+*************************************************************/
 u8 getChar(XUartPs *UartPsPtr) {
 	u32 receive = 0;
 	do {
@@ -207,18 +207,18 @@ u8 getChar(XUartPs *UartPsPtr) {
 }
 
 /**************************************************************
- * dmaReadReg sets the appropriate DMA registers for a read operation MM2S.
- *
- * @param	srcAddr is the source address from where to read.
- * @param	length is the number of bytes to read.
- * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables.
- *
- * @return
- * 		- XST_SUCCESS if successful,
- * 		- XST_FAILURE otherwise.
- *
- * @note	None.
- *************************************************************/
+* dmaReadReg sets the appropriate DMA registers for a read operation MM2S.
+*
+* @param	srcAddr is the source address from where to read.
+* @param	length is the number of bytes to read.
+* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables.
+*
+* @return
+* 		- XST_SUCCESS if successful,
+* 		- XST_FAILURE otherwise.
+*
+* @note	None.
+*************************************************************/
 int dmaReadReg(u32 *srcAddr, u32 length, controllers *ctrls) {
 	//Setting DMA MM2S run/stop bit to 1
 	Xil_Out32((ctrls->CfgPtr->BaseAddr + XAXIDMA_CR_OFFSET), XAXIDMA_CR_RUNSTOP_MASK);
@@ -236,15 +236,15 @@ int dmaReadReg(u32 *srcAddr, u32 length, controllers *ctrls) {
 }
 
 /**************************************************************
- * HsyncIntrHandler is Hsync interrupt handler.
- *
- * @param	Callback is a pointer to the caller, in this case the interrupt controller.
- *
- * @return	None.
- *
- * @note	None.
- *************************************************************/
- void HSyncIntrHandler(void *Callback) {
+* HsyncIntrHandler is Hsync interrupt handler.
+*
+* @param	Callback is a pointer to the caller, in this case the interrupt controller.
+*
+* @return	None.
+*
+* @note	None.
+*************************************************************/
+void HSyncIntrHandler(void *Callback) {
 	//Disable the interrupt
 	XScuGic_Disable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
 

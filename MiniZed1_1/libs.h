@@ -1,20 +1,20 @@
 /**************************************************************
- * File: libs.h
- * Description: DMA, GIC, UART configuration. Other 
- * miscellaneous functions.
- *
- * Author: Ahac Rafael Bela
- * Created on: 01.03.2025
- * Last modified: 01.03.2025
- *************************************************************/
+* File: libs.h
+* Description: DMA, GIC, UART configuration. Other 
+* miscellaneous functions.
+*
+* Author: Ahac Rafael Bela
+* Created on: 01.03.2025
+* Last modified: 01.03.2025
+*************************************************************/
 //Protection macro
 #pragma once
 #ifndef LIBS_H
 #define LIBS_H
 
 /**************************************************************
- * Include section
- *************************************************************/
+* Include section
+*************************************************************/
 //Standard xparameters library
 #include "xparameters.h"
 //DMA library
@@ -37,23 +37,23 @@
 #include "stdlib.h"
 
 /**************************************************************
- * Macro section
- *************************************************************/
- #define SCREEN_WIDTH  640
- #define SCREEN_HEIGHT 480
- //DMA interrupts
+* Macro section
+*************************************************************/
+#define SCREEN_WIDTH  640
+#define SCREEN_HEIGHT 480
+//DMA interrupts
 #define XPAR_FABRIC_HSYNC_INTROUT_VEC_ID 63U
 #define XPAR_FABRIC_VSYNC_INTROUT_VEC_ID 64U
 
 /**************************************************************
- * Interrupt section
- *************************************************************/
+* Interrupt section
+*************************************************************/
 #define HSYNC_INTR_ID   XPAR_FABRIC_HSYNC_INTROUT_VEC_ID
 #define VSYNC_INTR_ID   XPAR_FABRIC_VSYNC_INTROUT_VEC_ID
 
 /**************************************************************
- * Device section
- *************************************************************/
+* Device section
+*************************************************************/
 #define DMA_DEV_ID      XPAR_AXIDMA_0_DEVICE_ID
 #define INTC_DEV_ID     XPAR_SCUGIC_SINGLE_DEVICE_ID
 #define INTC            XScuGic
@@ -68,8 +68,8 @@ extern void xil_printf(const char *format, ...);
 #endif
 
 /**************************************************************
- * Struct section
- *************************************************************/
+* Struct section
+*************************************************************/
 typedef struct controllers_t {
 	XAxiDma *AxiDma;			//Pointer to Axi Dma
 	XAxiDma_Config *CfgPtr;		//Pointer to the config of Axi Dma
@@ -80,14 +80,14 @@ typedef struct controllers_t {
 } controllers;
 
 /**************************************************************
- * Variable declaration section
- *************************************************************/
+* Variable declaration section
+*************************************************************/
 extern controllers ctrls;
 extern u32 dataArray[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 /**************************************************************
- * Function prototype section
- *************************************************************/
+* Function prototype section
+*************************************************************/
 int initPlatform(controllers *ctrls);
 
 int initUART(controllers *ctrls);
@@ -100,13 +100,13 @@ u8 getChar(XUartPs *UartPs);
 int dmaReadReg(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length, int Direction);
 
 /**************************************************************
- * Interrupt service routine section
- *************************************************************/
+* Interrupt service routine section
+*************************************************************/
 void HSyncIntrHandler(void *Callback);
 void VSyncIntrHandler(void *Callback);
 
 #endif /* LIBS_H */
 
 /**************************************************************
- * End of file
- *************************************************************/
+* End of file
+*************************************************************/
