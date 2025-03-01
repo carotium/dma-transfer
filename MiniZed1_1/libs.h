@@ -37,7 +37,7 @@
 #include "stdlib.h"
 
 /**************************************************************
- * Macros section
+ * Macro section
  *************************************************************/
  #define SCREEN_WIDTH  640
  #define SCREEN_HEIGHT 480
@@ -68,7 +68,7 @@ extern void xil_printf(const char *format, ...);
 #endif
 
 /**************************************************************
- * Struct definitions
+ * Struct section
  *************************************************************/
 typedef struct controllers_t {
 	XAxiDma *AxiDma;			//Pointer to Axi Dma
@@ -80,13 +80,13 @@ typedef struct controllers_t {
 } controllers;
 
 /**************************************************************
- * Variable declarations
+ * Variable declaration section
  *************************************************************/
 extern controllers ctrls;
 extern u32 dataArray[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 /**************************************************************
- * Function prototypes
+ * Function prototype section
  *************************************************************/
 int initPlatform(controllers *ctrls);
 
@@ -100,7 +100,7 @@ u8 getChar(XUartPs *UartPs);
 int dmaReadReg(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length, int Direction);
 
 /**************************************************************
- * Interrupt service routines
+ * Interrupt service routine section
  *************************************************************/
 void HSyncIntrHandler(void *Callback);
 void VSyncIntrHandler(void *Callback);

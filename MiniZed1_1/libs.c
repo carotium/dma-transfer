@@ -17,7 +17,7 @@
  * Variable definitions
  *************************************************************/
 controllers *ctrls;
-u32 vgaArray[SCREEN_HEIGHT][SCREEN_WIDTH];
+
 static volatile s32 lineIndex = 0;
 
 /**************************************************************

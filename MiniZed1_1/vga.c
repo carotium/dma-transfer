@@ -1,0 +1,1 @@
+u32 vgaArray[SCREEN_HEIGHT][SCREEN_WIDTH];
