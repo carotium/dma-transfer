@@ -78,7 +78,7 @@ int initUART(controllers *ctrls) {
 
 	xil_printf("\r\nInitializing Uart...\r\n");
 	//Get the UART configuration
-	ctrls->Cfg = XUartPs_LookupConfig(UART_DEVICE_ID);		
+	ctrls->Cfg = XUartPs_LookupConfig(UART_DEV_ID);
 	if (ctrls->Cfg == NULL) return XST_FAILURE;
 	//Initialize UART
 	Status = XUartPs_CfgInitialize(ctrls->UartPs, ctrls->Cfg, ctrls->Cfg->BaseAddress);		
@@ -137,7 +137,7 @@ int initInterrupt(controllers *ctrls) {
 	xil_printf("\r\nInitializing interrupts...\r\n");
 
 	//Get the interrupt controller configuration
-	ctrls->IntcConfig = XScuGic_LookupConfig(INTC_DEVICE_ID);		
+	ctrls->IntcConfig = XScuGic_LookupConfig(INTC_DEV_ID);
 	if(NULL == ctrls->CfgPtr) return XST_FAILURE;
 	//Initialize the interrupt controller
 	Status = XScuGic_CfgInitialize(ctrls->IntcInstancePtr, ctrls->IntcConfig, (ctrls->IntcConfig)->CpuBaseAddress);		
@@ -184,8 +184,8 @@ int initInterrupt(controllers *ctrls) {
 void enableInterrupts(controllers *ctrls) {
     XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
 	XScuGic_Enable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
-	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_EMPTY_INTR_ID);
-	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_FULL_INTR_ID);
+//	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_EMPTY_INTR_ID);
+//	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_FULL_INTR_ID);
 }
 
 /**************************************************************
@@ -249,12 +249,31 @@ void HSyncIntrHandler(void *Callback) {
 	XScuGic_Disable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
 
 	//Do some data transfer
-	dmaReadReg(dataArray[lineIndex], SCREEN_WIDTH, ctrls);
-	Xil_DCacheFlushRange((INTPTR) dataArray[(lineIndex+1)%SCREEN_HEIGHT], SCREEN_WIDTH*4);
+	dmaReadReg(vgaArray[lineIndex], SCREEN_WIDTH, ctrls);
+	Xil_DCacheFlushRange((INTPTR) vgaArray[(lineIndex+1)%SCREEN_HEIGHT], SCREEN_WIDTH*4);
 
 	//Sending 640 lines, then starting over
 	if(lineIndex<(SCREEN_HEIGHT - 1))lineIndex++;
 
 	//End of data transfer, enable the interrupt
 	XScuGic_Enable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
+}
+
+/***************************************
+* VsyncIntrHandler is Vsync interrupt handler.
+*
+* @param	Callback is a pointer to the caller, in this case the interrupt controller.
+*
+* @return	None.
+*
+* @note	None.
+***************************************/
+void VSyncIntrHandler(void *Callback) {
+
+	XScuGic_Disable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
+
+ 	//Reset the line index (its negative because I need to fix the interrupt in hardware)
+ 	lineIndex = -28;
+
+ 	XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
 }
