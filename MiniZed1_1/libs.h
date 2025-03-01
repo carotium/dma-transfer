@@ -1,6 +1,6 @@
 /**************************************************************
 * File: libs.h
-* Description: DMA, GIC, UART configuration. Other 
+* Description: DMA, GIC, UART configuration. Other
 * miscellaneous functions.
 *
 * Author: Ahac Rafael Bela
@@ -82,8 +82,8 @@ typedef struct controllers_t {
 /**************************************************************
 * Variable declaration section
 *************************************************************/
-extern controllers ctrls;
-extern u32 dataArray[SCREEN_HEIGHT][SCREEN_WIDTH];
+extern controllers *ctrls;
+extern u32 vgaArray[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 /**************************************************************
 * Function prototype section
@@ -97,7 +97,7 @@ int initInterrupt(controllers *ctrls);
 void enableInterrupts(controllers *ctrls);
 
 u8 getChar(XUartPs *UartPs);
-int dmaReadReg(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length, int Direction);
+int dmaReadReg(u32 *srcAddr, u32 length, controllers *ctrls);
 
 /**************************************************************
 * Interrupt service routine section

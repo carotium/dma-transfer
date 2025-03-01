@@ -50,7 +50,7 @@ void clearVGA() {
 * @note	None.
 *************************************************************/
 void putPixel(u32 x, u32 y, colors color) {
-	u8 *screen = (u8 *) *dataArray;
+	u8 *screen = (u8 *) *vgaArray;
 	u32 where = x * PIXEL_WIDTH + y * PITCH;
 
 	screen[where] = color;				//RED
@@ -178,15 +178,15 @@ void drawBox(int x0, int y0, int x1, int y1, colors color) {
 }
 
 /**************************************************************
-* drawSelector draws a selector box.
-*
-* @param	tL is the top left corner of the selector box.
-* @param	color is the color of the selector box.
-*
-* @return	None.
-*
-* @note	None.
-*************************************************************/
+ * drawSelector draws a selector box.
+ *
+ * @param	tL is the top left corner of the selector box.
+ * @param	color is the color of the selector box.
+ *
+ * @return	None.
+ *
+ * @note	None.
+ *************************************************************/
 void drawSelector(point tL, colors color) {
 	int offset = 16;
 	int height = 32;
