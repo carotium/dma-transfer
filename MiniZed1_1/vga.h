@@ -83,6 +83,9 @@ extern u32 discovered;
  void drawStraight(int x0, int y0, int x1, int x2, u32 color);
  void drawBox(int x0, int y0, int x1, int y1, colors color);
  void drawSelector(point tL, colors color);
+ void selectSelector(point selector);
+ void unselectSelector(point selector);
+ void selectSelectorWText(selectorWText selectorWText);
  
  #endif /* VGA_H */
 

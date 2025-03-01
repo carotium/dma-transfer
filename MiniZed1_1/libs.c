@@ -23,6 +23,7 @@ static volatile s32 lineIndex = 0;
 /**************************************************************
  * Function definitions
  *************************************************************/
+
 /**************************************************************
  * initPlatform initializes the platform. It initializes UART, DMA and interrupts.
  *
@@ -33,7 +34,7 @@ static volatile s32 lineIndex = 0;
  * 		- XST_FAILURE otherwise.
  *
  * @note	None.
- ***************************************/
+ *************************************************************/
  int initPlatform(controllers *ctrls) {
 	int Status;
 
@@ -61,7 +62,7 @@ static volatile s32 lineIndex = 0;
 	return Status;
 }
 
-/***************************************
+/**************************************************************
  * initUart initializes the UART.
  *
  * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
@@ -71,7 +72,7 @@ static volatile s32 lineIndex = 0;
  * 		- XST_FAILURE otherwise.
  *
  * @note	None.
- ***************************************/
+ *************************************************************/
  int initUART(controllers *ctrls) {
 	int Status;
 
@@ -90,7 +91,7 @@ static volatile s32 lineIndex = 0;
 	return Status;
 }
 
-/***************************************
+/**************************************************************
  * initDMA initializes the DMA.
  *
  * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
@@ -100,7 +101,7 @@ static volatile s32 lineIndex = 0;
  * 		- XST_FAILURE otherwise.
  *
  * @note	None.
- ***************************************/
+ *************************************************************/
  int initDMA(controllers *ctrls) {
 	int Status;
 
@@ -119,7 +120,7 @@ static volatile s32 lineIndex = 0;
 	return Status;
 }
 
-/***************************************
+/**************************************************************
  * initInterrupt initializes MM2S and HSync interrupts. (for now)
  *
  * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
@@ -129,7 +130,7 @@ static volatile s32 lineIndex = 0;
  * 		- XST_FAILURE otherwise.
  *
  * @note	None.
- ***************************************/
+ *************************************************************/
  int initInterrupt(controllers *ctrls) {
 	int Status;
 
@@ -170,7 +171,7 @@ static volatile s32 lineIndex = 0;
 	return Status;
 }
 
-/***************************************
+/**************************************************************
  * enableInterrupts enables interrupts
  *
  * @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
@@ -179,7 +180,7 @@ static volatile s32 lineIndex = 0;
  * 			None.
  *
  * @note	None.
- ***************************************/
+ *************************************************************/
  void enableInterrupts(controllers *ctrls) {
 	XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
 	XScuGic_Enable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
@@ -187,7 +188,7 @@ static volatile s32 lineIndex = 0;
 	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_FULL_INTR_ID);
 }
 
-/***************************************
+/**************************************************************
  * getChar reads from UART and returns keyboard input.
  *
  * @param	UartPsPtr is a pointer to the XUartPs instance.
@@ -195,7 +196,7 @@ static volatile s32 lineIndex = 0;
  * @return	The character typed to the UART.
  *
  * @note	None.
- ***************************************/
+ *************************************************************/
  u8 getChar(XUartPs *UartPsPtr) {
 	u32 receive = 0;
 	do {
@@ -205,7 +206,7 @@ static volatile s32 lineIndex = 0;
 	return *(u8 *) (XPAR_PS7_RAM_1_S_AXI_HIGHADDR - 0xFFF);
 }
 
-/***************************************
+/**************************************************************
  * dmaReadReg sets the appropriate DMA registers for a read operation MM2S.
  *
  * @param	srcAddr is the source address from where to read.
@@ -217,7 +218,7 @@ static volatile s32 lineIndex = 0;
  * 		- XST_FAILURE otherwise.
  *
  * @note	None.
- ***************************************/
+ *************************************************************/
  int dmaReadReg(u32 *srcAddr, u32 length, controllers *ctrls) {
 	//Setting DMA MM2S run/stop bit to 1
 	Xil_Out32((ctrls->CfgPtr->BaseAddr + XAXIDMA_CR_OFFSET), XAXIDMA_CR_RUNSTOP_MASK);
@@ -234,7 +235,7 @@ static volatile s32 lineIndex = 0;
 	return XST_SUCCESS;
 }
 
-/***************************************
+/**************************************************************
  * HsyncIntrHandler is Hsync interrupt handler.
  *
  * @param	Callback is a pointer to the caller, in this case the interrupt controller.
@@ -242,7 +243,7 @@ static volatile s32 lineIndex = 0;
  * @return	None.
  *
  * @note	None.
- ***************************************/
+ *************************************************************/
  void HSyncIntrHandler(void *Callback) {
 	//Disable the interrupt
 	XScuGic_Disable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
