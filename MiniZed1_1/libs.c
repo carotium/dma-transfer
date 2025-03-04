@@ -5,7 +5,7 @@
 *
 * Author: Ahac Rafael Bela
 * Created on: 01.03.2025
-* Last modified: 01.03.2025
+* Last modified: 04.03.2025
 *************************************************************/
 
 /**************************************************************
@@ -17,6 +17,8 @@
 * Variable definitions
 *************************************************************/
 controllers *ctrls;
+volatile u8 caughtChar;
+volatile u8 receivedCount = 0;
 
 static volatile s32 lineIndex = 0;
 
@@ -87,6 +89,12 @@ int initUART(controllers *ctrls) {
 	XUartPs_SetBaudRate(ctrls->UartPs, 115200);		
 	//Set UART in normal mode
 	XUartPs_SetOperMode(ctrls->UartPs , XUARTPS_OPER_MODE_NORMAL); 	
+	//Set the interrupt mask to RX Trigger
+    XUartPs_SetInterruptMask(ctrls->UartPs, XUARTPS_IXR_RXOVR | XUARTPS_IXR_MASK);
+    //Set the custom handler for the interrupt
+    XUartPs_SetHandler(ctrls->UartPs, (XUartPs_Handler) UartPsIntrHandler, ctrls->UartPs);
+    //Set the threshold for the interrupt to 1 byte aka 1 character
+    XUartPs_SetFifoThreshold(ctrls->UartPs, 1);
 
 	return Status;
 }
@@ -150,11 +158,14 @@ int initInterrupt(controllers *ctrls) {
 	//Set priority for connected interrupts (0 is highest, 0xF8 is highest, with 0x8 increments)
     XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, HSYNC_INTR_ID, 0xA0, 0x3);
     XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, VSYNC_INTR_ID, 0x98, 0x3);
+    XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, UART_INTR_ID, 0x90, 0x3);
 
 	//Connect interrupts to their corresponding handlers
 	Status = XScuGic_Connect(ctrls->IntcInstancePtr, HSYNC_INTR_ID, (Xil_InterruptHandler) HSyncIntrHandler, ctrls->IntcInstancePtr);
 	if(Status != XST_SUCCESS) return XST_FAILURE;
 	Status = XScuGic_Connect(ctrls->IntcInstancePtr, VSYNC_INTR_ID, (Xil_InterruptHandler) VSyncIntrHandler, ctrls->IntcInstancePtr);
+	if(Status != XST_SUCCESS) return XST_FAILURE;
+	Status = XScuGic_Connect(ctrls->IntcInstancePtr, UART_INTR_ID, (Xil_InterruptHandler) XUartPs_InterruptHandler, ctrls->UartPs);
 	if(Status != XST_SUCCESS) return XST_FAILURE;
 
 	//Disable all DMA interrupts before setup
@@ -163,11 +174,13 @@ int initInterrupt(controllers *ctrls) {
 	//Enable IOC (interrupt on completion) for DMA to device (DMA read/MM2S)
 	XAxiDma_IntrEnable(ctrls->AxiDma, XAXIDMA_IRQ_IOC_MASK, XAXIDMA_DMA_TO_DEVICE);
 
+
 	//Enable interrupts from GIC to PS
     //Xil_ExceptionInit();	this function does nothing!
-	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,(Xil_ExceptionHandler)INTC_HANDLER,(void *)ctrls->IntcInstancePtr);
+	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT, (Xil_ExceptionHandler) INTC_HANDLER,(void *)ctrls->IntcInstancePtr);
 	//Enable interrupts in ARM
     Xil_ExceptionEnable();
+
 	return Status;
 }
 
@@ -184,6 +197,7 @@ int initInterrupt(controllers *ctrls) {
 void enableInterrupts(controllers *ctrls) {
     XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
 	XScuGic_Enable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
+	XScuGic_Enable(ctrls->IntcInstancePtr, UART_INTR_ID);
 //	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_EMPTY_INTR_ID);
 //	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_FULL_INTR_ID);
 }
@@ -276,4 +290,29 @@ void VSyncIntrHandler(void *Callback) {
  	lineIndex = -28;
 
  	XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
+}
+
+void UartPsIntrHandler(void *CallBackRef, u32 Event, u32 EventData) {
+//	XScuGic_Disable(ctrls->IntcInstancePtr, UART_INTR_ID);
+
+	XUartPs *UartInstPtr = (XUartPs *)CallBackRef;
+
+	if(Event == XUARTPS_EVENT_RECV_DATA) {
+		xil_printf("\r\ndata received");
+		receivedCount = EventData;
+//		XUartPs_SetOptions(ctrls->UartPs, XUARTPS_OPTION_RESET_RX);
+//		XUartPs_SetOptions(ctrls->UartPs, XUartPs_GetOptions(ctrls->UartPs) & ~XUARTPS_OPTION_RESET_RX);
+
+//		XUartPs_Recv(UartInstPtr, (u8 *) &caughtChar, 0);
+		XUartPs_Recv(UartInstPtr, (u8 *) &caughtChar, 1);
+	}
+
+//	if(XUartPs_Recv(ctrls->UartPs, (u8 *) UART_RX_BUFFER, 1)) {
+//		caughtChar = *(ctrls->UartPs->ReceiveBuffer.NextBytePtr);
+//
+//		XUartPs_SetOptions(ctrls->UartPs, XUARTPS_OPTION_RESET_RX);
+//	}
+
+//	XScuGic_Enable(ctrls->IntcInstancePtr, UART_INTR_ID);
+
 }

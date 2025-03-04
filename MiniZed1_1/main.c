@@ -4,7 +4,7 @@
 *
 * Author: Ahac Rafael Bela
 * Created on: 01.03.2025
-* Last modified: 01.03.2025
+* Last modified: 04.03.2025
 *************************************************************/
 
 /**************************************************************
@@ -51,8 +51,6 @@ int main(void) {
 	//Enable the interrupts
 	enableInterrupts(ctrls);
 
-    drawText("MiniZed 1.0", (point){2, 2}, 4, white, d_gray);
-
     point selector1 = {208, 200};
 	point selector2 = {208, 238};
 	point selector3 = {208, 276};
@@ -74,71 +72,67 @@ int main(void) {
 	selectorWText3 = (selectorWText){{selector3.x, selector3.y}, textPos3, menuText3};
 	selectorWText4 = (selectorWText){{selector4.x, selector4.y}, textPos4, menuText4};
 
-	drawStraight(0, 0, 0, 479, red);
-	drawStraight(0, 0, 639, 0, red);
-	drawStraight(0, 479, 639, 479, red);
-	drawStraight(639, 0, 639, 479, red);
+	drawStraight((point) {0, 0}, (point) {0, 479}, red);
+	drawStraight((point) {0, 0}, (point) {639, 0}, red);
+	drawStraight((point) {0, 479}, (point) {639, 479}, red);
+	drawStraight((point) {639, 0}, (point) {639, 479}, red);
 
 	//First box is selected on startup
 	static int selected = 1;
-	drawSelector(selector1, white);
-	drawSelector(selector2, d_gray);
-	drawSelector(selector3, d_gray);
-//	drawSelector(selector4, l_red);
 
-	drawText(selectorWText1.menuText, selectorWText1.menu, 2, white, black);
-	drawText(selectorWText2.menuText, selectorWText2.menu, 2, d_gray, black);
-	drawText(selectorWText3.menuText, selectorWText3.menu, 2, d_gray, black);
-//	drawText(selectorWText4.menuText, selectorWText4.menu, 2, l_red, black);
+	//Starting menu with selectors
+	drawStage(0);
 
-//	drawLineB(64, 64, 575, 415, l_blue);
+	XUartPs_Recv(ctrls->UartPs, (u8 *) &caughtChar, 1);
 
-//	XTime_GetTime(&tStart);
-//	printVGA("B", 1, cyan);
-//	XTime_GetTime(&tEnd);
-
-//	printf("printVGA took %llu clock cycles.\n", 2*(tEnd - tStart));
-//	printf("printVGA took %.2f us.\n",
-//			1.0 * (tEnd - tStart) / (COUNTS_PER_SECOND/1000000));
-
+	caughtChar = '\0';
 //	nextLine(1);
 //	scale = 1;
 	while(1) {
-		char caughtChar = getChar(ctrls->UartPs);
-
-		if(caughtChar == 'w') {
-			//Up arrow
-			if(selected > 1) {
-				selected--;
-				discovered = 0;
+//		char caughtChar = getChar(ctrls->UartPs);
+//		sleep(1);
+		if(receivedCount == 1) {
+			receivedCount--;
+			if(caughtChar == 'w') {
+				//Up arrow
+				if(selected > 1) {
+					selected--;
+					discovered = 0;
+				}
 			}
-		}
-		else if(caughtChar == 's') {
-			//Down arrow
-			if(selected < 3) {
+			else if(caughtChar == 's') {
+				//Down arrow
+				if(selected < 3) {
+					selected++;
+				}
+			} else if(caughtChar == 'S' && selected == 3) {
 				selected++;
+				discovered = 1;
 			}
-		} else if(caughtChar == 'S' && selected == 3) {
-			selected++;
-			discovered = 1;
-		}
 
-		selectorWText menuText;
-		switch(selected) {
-		case 1:
-			menuText = selectorWText1;
-			break;
-		case 2:
-			menuText = selectorWText2;
-			break;
-		case 3:
-			menuText = selectorWText3;
-			break;
-		case 4:
-			menuText = selectorWText4;
-		}
+			selectorWText menuText;
+			switch(selected) {
+			case 1:
+				menuText = selectorWText1;
+				break;
+			case 2:
+				menuText = selectorWText2;
+				break;
+			case 3:
+				menuText = selectorWText3;
+				break;
+			case 4:
+				menuText = selectorWText4;
+			}
 
-		selectMenu(menuText);
+			selectMenu(menuText);
+
+			//Pressing enter, so entering echo, lines or exit
+			if(caughtChar == 0xD) {
+	//			drawStage(selected);
+				enterMenu(menuText);
+			}
+		}
 
 //		if(caughtChar == 0xD) {
 //			enterMenu(menuText);

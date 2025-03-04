@@ -5,7 +5,7 @@
 *
 * Author: Ahac Rafael Bela
 * Created on: 01.03.2025
-* Last modified: 01.03.2025
+* Last modified: 04.03.2025
 *************************************************************/
 //Protection macro
 #pragma once
@@ -50,6 +50,7 @@
 *************************************************************/
 #define HSYNC_INTR_ID   XPAR_FABRIC_HSYNC_INTROUT_VEC_ID
 #define VSYNC_INTR_ID   XPAR_FABRIC_VSYNC_INTROUT_VEC_ID
+#define UART_INTR_ID	XPAR_XUARTPS_1_INTR
 
 /**************************************************************
 * Device section
@@ -62,6 +63,8 @@
 
 #define DDR_BASE_ADDR   XPAR_PS7_DDR_0_S_AXI_BASEADDR
 #define MEM_BASE_ADDR   (DDR_BASE_ADDR + 0x01000000)
+
+#define UART_RX_BUFFER	(XPAR_PS7_DDR_0_S_AXI_HIGHADDR - 0xFFF)
 
 #ifndef DEBUG
 extern void xil_printf(const char *format, ...);
@@ -84,6 +87,8 @@ typedef struct controllers_t {
 *************************************************************/
 extern controllers *ctrls;
 extern u32 vgaArray[SCREEN_HEIGHT][SCREEN_WIDTH];
+extern volatile u8 caughtChar;
+extern volatile u8 receivedCount;
 
 /**************************************************************
 * Function prototype section
@@ -104,6 +109,7 @@ int dmaReadReg(u32 *srcAddr, u32 length, controllers *ctrls);
 *************************************************************/
 void HSyncIntrHandler(void *Callback);
 void VSyncIntrHandler(void *Callback);
+void UartPsIntrHandler(void *Callback, u32 Event, u32 EventData);
 
 #endif /* LIBS_H */
 
