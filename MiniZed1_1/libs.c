@@ -167,6 +167,7 @@ int initInterrupt(controllers *ctrls) {
     XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, HSYNC_INTR_ID, 0xA0, 0x3);
     XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, UART_INTR_ID, 0xA8, 0x3);
     XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, VSYNC_INTR_ID, 0x98, 0x3);
+    XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, UART_INTR_ID, 0x90, 0x3);
 
 	//Connect interrupts to their corresponding handlers
 	Status = XScuGic_Connect(ctrls->IntcInstancePtr, HSYNC_INTR_ID, (Xil_InterruptHandler) HSyncIntrHandler, ctrls->IntcInstancePtr);

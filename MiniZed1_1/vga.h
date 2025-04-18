@@ -42,9 +42,9 @@
 	(SCREEN_HEIGHT / 2 - (CHAR_HEIGHT * 2 + SELECTOR_PADDING * 2) + 38 * (s-1))
 
 /**************************************************************
-* Enum section
-*************************************************************/
-typedef enum colors {
+ * Enum section
+ *************************************************************/
+ typedef enum colors {
 	black	=	0x0,
 	blue	=	0x0A0000,
 	green	=	0x000A00,
