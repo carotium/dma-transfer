@@ -1,39 +1,43 @@
-/**************************************************************
+/*************************************************************
 * File: libs.c
 * Description: MiniZed board DMA, GIC, UART configuration.
-* Other miscellaneous functions.
+* Other interrupt functions for DMA, UART receive, VGA synchronization signals.
 *
 * Author: Ahac Rafael Bela
 * Created on: 01.03.2025
-* Last modified: 01.03.2025
+* Last modified: 14.04.2025
 *************************************************************/
 
-/**************************************************************
+/*************************************************************
 * Include section
 *************************************************************/
 #include "libs.h"
 
-/**************************************************************
-* Variable definitions
+/*************************************************************
+* Global variable section
 *************************************************************/
 controllers *ctrls;
+volatile u8 caughtChar;
+volatile u8 receivedCount = 0;
 
 static volatile s32 lineIndex = 0;
 
-/**************************************************************
-* Function definitions
+/*************************************************************
+* Function definition section
 *************************************************************/
 
-/**************************************************************
+/*************************************************************
 * initPlatform initializes the platform. It initializes UART, DMA and interrupts.
 *
-* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+* @param	ctrls is a pointer to the controllers structure which
+* 			holds necessary configuration and instance variables
+* 			for initialization.
 *
 * @return
-* 		- XST_SUCCESS if successful,
-* 		- XST_FAILURE otherwise.
+* 			- XST_SUCCESS if successful,
+* 			- XST_FAILURE otherwise.
 *
-* @note	None.
+* @note		None.
 *************************************************************/
 int initPlatform(controllers *ctrls) {
 	int Status;
@@ -62,16 +66,18 @@ int initPlatform(controllers *ctrls) {
 	return Status;
 }
 
-/**************************************************************
+/*************************************************************
 * initUart initializes the UART.
 *
-* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+* @param	ctrls is a pointer to the controllers structure which
+* 			holds necessary configuration and instance variables
+* 			for initialization.
 *
 * @return
-* 		- XST_SUCCESS if successful,
-* 		- XST_FAILURE otherwise.
+* 			- XST_SUCCESS if successful,
+* 			- XST_FAILURE otherwise.
 *
-* @note	None.
+* @note		None.
 *************************************************************/
 int initUART(controllers *ctrls) {
 	int Status;
@@ -87,20 +93,28 @@ int initUART(controllers *ctrls) {
 	XUartPs_SetBaudRate(ctrls->UartPs, 115200);		
 	//Set UART in normal mode
 	XUartPs_SetOperMode(ctrls->UartPs , XUARTPS_OPER_MODE_NORMAL); 	
+	//Set the interrupt mask to RX Trigger
+    XUartPs_SetInterruptMask(ctrls->UartPs, XUARTPS_IXR_RXOVR | XUARTPS_IXR_MASK);
+    //Set the custom handler for the interrupt
+    XUartPs_SetHandler(ctrls->UartPs, (XUartPs_Handler) UartPsIntrHandler, ctrls->UartPs);
+    //Set the threshold for the interrupt to 1 byte aka 1 character
+    XUartPs_SetFifoThreshold(ctrls->UartPs, 1);
 
 	return Status;
 }
 
-/**************************************************************
+/*************************************************************
 * initDMA initializes the DMA.
 *
-* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+* @param	ctrls is a pointer to the controllers structure which
+* 			holds necessary configuration and instance variables
+* 			for initialization.
 *
 * @return
-* 		- XST_SUCCESS if successful,
-* 		- XST_FAILURE otherwise.
+* 			- XST_SUCCESS if successful,
+* 			- XST_FAILURE otherwise.
 *
-* @note	None.
+* @note		None.
 *************************************************************/
 int initDMA(controllers *ctrls) {
 	int Status;
@@ -120,16 +134,18 @@ int initDMA(controllers *ctrls) {
 	return Status;
 }
 
-/**************************************************************
-* initInterrupt initializes MM2S and HSync interrupts. (for now)
+/*************************************************************
+* initInterrupt initializes MM2S, HSync and UART interrupts.
 *
-* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+* @param	ctrls is a pointer to the controllers structure which
+* 			holds necessary configuration and instance variables
+* 			for initialization.
 *
 * @return
-* 		- XST_SUCCESS if successful,
-* 		- XST_FAILURE otherwise.
+* 			- XST_SUCCESS if successful,
+* 			- XST_FAILURE otherwise.
 *
-* @note	None.
+* @note		None.
 *************************************************************/
 int initInterrupt(controllers *ctrls) {
 	int Status;
@@ -149,12 +165,15 @@ int initInterrupt(controllers *ctrls) {
 
 	//Set priority for connected interrupts (0 is highest, 0xF8 is highest, with 0x8 increments)
     XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, HSYNC_INTR_ID, 0xA0, 0x3);
+    XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, UART_INTR_ID, 0xA8, 0x3);
     XScuGic_SetPriorityTriggerType(ctrls->IntcInstancePtr, VSYNC_INTR_ID, 0x98, 0x3);
 
 	//Connect interrupts to their corresponding handlers
 	Status = XScuGic_Connect(ctrls->IntcInstancePtr, HSYNC_INTR_ID, (Xil_InterruptHandler) HSyncIntrHandler, ctrls->IntcInstancePtr);
 	if(Status != XST_SUCCESS) return XST_FAILURE;
 	Status = XScuGic_Connect(ctrls->IntcInstancePtr, VSYNC_INTR_ID, (Xil_InterruptHandler) VSyncIntrHandler, ctrls->IntcInstancePtr);
+	if(Status != XST_SUCCESS) return XST_FAILURE;
+	Status = XScuGic_Connect(ctrls->IntcInstancePtr, UART_INTR_ID, (Xil_InterruptHandler) XUartPs_InterruptHandler, ctrls->UartPs);
 	if(Status != XST_SUCCESS) return XST_FAILURE;
 
 	//Disable all DMA interrupts before setup
@@ -163,61 +182,47 @@ int initInterrupt(controllers *ctrls) {
 	//Enable IOC (interrupt on completion) for DMA to device (DMA read/MM2S)
 	XAxiDma_IntrEnable(ctrls->AxiDma, XAXIDMA_IRQ_IOC_MASK, XAXIDMA_DMA_TO_DEVICE);
 
+
 	//Enable interrupts from GIC to PS
     //Xil_ExceptionInit();	this function does nothing!
-	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,(Xil_ExceptionHandler)INTC_HANDLER,(void *)ctrls->IntcInstancePtr);
+	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT, (Xil_ExceptionHandler) INTC_HANDLER,(void *)ctrls->IntcInstancePtr);
 	//Enable interrupts in ARM
     Xil_ExceptionEnable();
+
 	return Status;
 }
 
-/**************************************************************
-* enableInterrupts enables interrupts
+/*************************************************************
+* enableInterrupts enables interrupts.
 *
-* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables for initialization.
+* @param	ctrls is a pointer to the controllers structure which
+* 			holds necessary configuration and instance variables
+* 			for initialization.
 *
-* @return
-* 			None.
+* @return	None.
 *
-* @note	None.
+* @note		None.
 *************************************************************/
 void enableInterrupts(controllers *ctrls) {
     XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
 	XScuGic_Enable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
-//	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_EMPTY_INTR_ID);
-//	XScuGic_Enable(ctrls->IntcInstancePtr, FIFO_FULL_INTR_ID);
+	XScuGic_Enable(ctrls->IntcInstancePtr, UART_INTR_ID);
 }
 
-/**************************************************************
-* getChar reads from UART and returns keyboard input.
-*
-* @param	UartPsPtr is a pointer to the XUartPs instance.
-*
-* @return	The character typed to the UART.
-*
-* @note	None.
-*************************************************************/
-u8 getChar(XUartPs *UartPsPtr) {
-	u32 receive = 0;
-	do {
-		receive = XUartPs_Recv(UartPsPtr,(u8 *) (XPAR_PS7_RAM_1_S_AXI_HIGHADDR - 0xFFF), 1);
-
-	} while (receive == 0);
-	return *(u8 *) (XPAR_PS7_RAM_1_S_AXI_HIGHADDR - 0xFFF);
-}
-
-/**************************************************************
+/*************************************************************
 * dmaReadReg sets the appropriate DMA registers for a read operation MM2S.
 *
 * @param	srcAddr is the source address from where to read.
 * @param	length is the number of bytes to read.
-* @param	ctrls is a pointer to the controllers structure which holds necessary configuration and instance variables.
+* @param	ctrls is a pointer to the controllers structure which
+* 			holds necessary configuration and instance variables
+* 			for initialization.
 *
 * @return
-* 		- XST_SUCCESS if successful,
-* 		- XST_FAILURE otherwise.
+* 			- XST_SUCCESS if successful,
+* 			- XST_FAILURE otherwise.
 *
-* @note	None.
+* @note		None.
 *************************************************************/
 int dmaReadReg(u32 *srcAddr, u32 length, controllers *ctrls) {
 	//Setting DMA MM2S run/stop bit to 1
@@ -235,14 +240,15 @@ int dmaReadReg(u32 *srcAddr, u32 length, controllers *ctrls) {
 	return XST_SUCCESS;
 }
 
-/**************************************************************
+/*************************************************************
 * HsyncIntrHandler is Hsync interrupt handler.
 *
-* @param	Callback is a pointer to the caller, in this case the interrupt controller.
+* @param	Callback is a pointer to the caller, in this case
+* 			to the interrupt controller.
 *
 * @return	None.
 *
-* @note	None.
+* @note		None.
 *************************************************************/
 void HSyncIntrHandler(void *Callback) {
 	//Disable the interrupt
@@ -252,28 +258,54 @@ void HSyncIntrHandler(void *Callback) {
 	dmaReadReg(vgaArray[lineIndex], SCREEN_WIDTH, ctrls);
 	Xil_DCacheFlushRange((INTPTR) vgaArray[(lineIndex+1)%SCREEN_HEIGHT], SCREEN_WIDTH*4);
 
-	//Sending 640 lines, then starting over
+	//Sending 600 lines, then starting over
 	if(lineIndex<(SCREEN_HEIGHT - 1))lineIndex++;
 
 	//End of data transfer, enable the interrupt
 	XScuGic_Enable(ctrls->IntcInstancePtr, HSYNC_INTR_ID);
 }
 
-/***************************************
+/*************************************************************
 * VsyncIntrHandler is Vsync interrupt handler.
 *
-* @param	Callback is a pointer to the caller, in this case the interrupt controller.
+* @param	Callback is a pointer to the caller, in this case
+* 			to the interrupt controller.
 *
 * @return	None.
 *
-* @note	None.
-***************************************/
+* @note		None.
+*************************************************************/
 void VSyncIntrHandler(void *Callback) {
 
 	XScuGic_Disable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
 
- 	//Reset the line index (its negative because I need to fix the interrupt in hardware)
+ 	//Reset the line index
  	lineIndex = -28;
 
  	XScuGic_Enable(ctrls->IntcInstancePtr, VSYNC_INTR_ID);
 }
+
+/*************************************************************
+* UartPsIntrHandler is UART on receive interrupt handler.
+*
+* @param	Callback is a pointer to the caller, in this case
+* 			to the UART controller.
+*
+* @return	None.
+*
+* @note		None.
+*************************************************************/
+void UartPsIntrHandler(void *CallBackRef, u32 Event, u32 EventData) {
+
+	XUartPs *UartInstPtr = (XUartPs *)CallBackRef;
+
+	if(Event == XUARTPS_EVENT_RECV_DATA) {
+		receivedCount = EventData;
+		//Run the XUartPs_Recv so it waits for the next byte to be sent over UART
+		XUartPs_Recv(UartInstPtr, (u8 *) &caughtChar, 1);
+	}
+}
+
+/*************************************************************
+* End of file
+*************************************************************/
